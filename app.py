@@ -138,14 +138,17 @@ def get_server_type_from_table(table_name: str) -> str:
 
 def get_dell_server_type_from_mapping(product_name: str, mapping_df: pd.DataFrame) -> str:
     """Get Dell server type from mapping data"""
-    if mapping_df is None or len(mapping_df) == 0:
+    try:
+        if mapping_df is None or len(mapping_df) == 0:
+            return "Unknown"
+        
+        # Find matching Dell server in mapping
+        match = mapping_df[mapping_df['Dell Server'] == product_name]
+        if len(match) > 0:
+            return match.iloc[0]['Server Category']
         return "Unknown"
-    
-    # Find matching Dell server in mapping
-    match = mapping_df[mapping_df['Dell Server'] == product_name]
-    if len(match) > 0:
-        return match.iloc[0]['Server Category']
-    return "Unknown"
+    except Exception:
+        return "Unknown"
 
 def hash_password(password: str) -> str:
     """Hash a password for storage"""
@@ -235,9 +238,13 @@ def main():
         all_data = get_all_data()
         
         # Load server mapping data
-        conn = sqlite3.connect(DB_FILE)
-        mapping_df = pd.read_sql("SELECT * FROM server_mapping", conn)
-        conn.close()
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            mapping_df = pd.read_sql("SELECT * FROM server_mapping", conn)
+            conn.close()
+        except Exception:
+            mapping_df = None
+            st.warning("Server mapping data not available")
     except Exception as e:
         st.error(f"Error loading database: {e}")
         st.info("Please ensure 'companies_data.db' is in the same directory as this app.")
@@ -251,9 +258,13 @@ def main():
         
         # For Dell servers, use mapping data for server type
         if df_copy['Company'].iloc[0] == 'Dell':
-            df_copy['Server Type'] = df_copy['Product Name'].apply(
-                lambda x: get_dell_server_type_from_mapping(x, mapping_df)
-            )
+            try:
+                df_copy['Server Type'] = df_copy['Product Name'].apply(
+                    lambda x: get_dell_server_type_from_mapping(x, mapping_df)
+                )
+            except Exception as e:
+                # Fallback to table-based server type if mapping fails
+                df_copy['Server Type'] = get_server_type_from_table(table_name)
         else:
             df_copy['Server Type'] = get_server_type_from_table(table_name)
         
@@ -300,14 +311,15 @@ def main():
             
             # Display servers as cards
             for idx, row in filtered_df.iterrows():
-                with st.expander(f"{row['Company']} - {row['Product Name']} ({row['Server Type']})"):
+                server_type = row.get('Server Type', 'Unknown')
+                with st.expander(f"{row['Company']} - {row['Product Name']} ({server_type})"):
                     col1, col2 = st.columns(2)
                     
                     with col1:
                         st.markdown("**Basic Information**")
                         st.write(f"**Company:** {row['Company']}")
                         st.write(f"**Product:** {row['Product Name']}")
-                        st.write(f"**Server Type:** {row['Server Type']}")
+                        st.write(f"**Server Type:** {server_type}")
                     
                     with col2:
                         st.markdown("**Specifications**")
@@ -415,7 +427,11 @@ def main():
             st.subheader("Server Type Coverage")
             
             # Get Dell server types from mapping data
-            dell_server_types = set(mapping_df['Server Category'].unique()) if len(mapping_df) > 0 else set(dell_servers['Server Type'].unique())
+            if mapping_df is not None and len(mapping_df) > 0:
+                dell_server_types = set(mapping_df['Server Category'].unique())
+            else:
+                dell_server_types = set(dell_servers['Server Type'].unique())
+            
             competitor_server_types = set(competitor_servers['Server Type'].unique())
             
             # Server types Dell has that competitors don't
@@ -506,6 +522,11 @@ def main():
         st.markdown('<h2 class="sub-header">Dell Servers Mapped Comparisons</h2>', unsafe_allow_html=True)
         
         st.subheader("View Dell products with their mapped competitor equivalents")
+        
+        # Check if mapping data is available
+        if mapping_df is None or len(mapping_df) == 0:
+            st.warning("Server mapping data not available. Please ensure server_mapping table exists in the database.")
+            return
         
         # Get Dell servers from master data
         dell_servers = master_df[master_df['Company'] == 'Dell']
