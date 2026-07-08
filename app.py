@@ -97,7 +97,11 @@ def display_list_with_show_more(value, key_prefix):
     else:
         show_more_key = f"show_more_{key_prefix}"
         
-        if st.session_state.get(show_more_key, False):
+        # Initialize session state if not exists
+        if show_more_key not in st.session_state:
+            st.session_state[show_more_key] = False
+        
+        if st.session_state[show_more_key]:
             # Show all items
             st.write("• " + "\n• ".join(str(item) for item in value))
             if st.button("Show less", key=f"less_{key_prefix}"):
