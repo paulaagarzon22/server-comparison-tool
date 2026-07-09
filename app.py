@@ -366,16 +366,54 @@ def main():
     with tab1:
         st.markdown('<h2 class="sub-header">Server Catalog</h2>', unsafe_allow_html=True)
         
-        if len(filtered_df) == 0:
-            st.warning("No servers found matching the selected filters.")
-        else:
-            st.info(f"Showing {len(filtered_df)} server(s)")
+        # Add search bar
+        search_term = st.text_input("🔍 Search servers", "", placeholder="Search by product name, company, server type, CPU, GPU, etc.")
+        
+        # Apply search filter
+        if search_term:
+            search_term_lower = search_term.lower()
+            search_df = filtered_df.copy()
             
-            # Display servers as cards
-            for idx, row in filtered_df.iterrows():
-                server_type = row.get('Server Type', 'Unknown')
-                with st.expander(f"{row['Company']} - {row['Product Name']} ({server_type})"):
-                    display_server_details(row, idx)
+            # Search across multiple columns
+            def search_row(row):
+                searchable_text = ""
+                for col in ['Company', 'Product Name', 'Server Type', 'CPU', 'GPU', 'Memory']:
+                    if col in row.index:
+                        value = row[col]
+                        try:
+                            if pd.isna(value):
+                                continue
+                        except:
+                            continue
+                        if isinstance(value, list):
+                            searchable_text += " ".join(str(item) for item in value) + " "
+                        else:
+                            searchable_text += str(value) + " "
+                return search_term_lower in searchable_text.lower()
+            
+            search_df = search_df[search_df.apply(search_row, axis=1)]
+            
+            if len(search_df) == 0:
+                st.warning(f"No servers found matching search term: '{search_term}'")
+                st.info("Try different keywords or clear the search to see all servers.")
+            else:
+                st.info(f"Showing {len(search_df)} server(s) matching '{search_term}'")
+                # Display servers as cards
+                for idx, row in search_df.iterrows():
+                    server_type = row.get('Server Type', 'Unknown')
+                    with st.expander(f"{row['Company']} - {row['Product Name']} ({server_type})"):
+                        display_server_details(row, f"search_{idx}")
+        else:
+            if len(filtered_df) == 0:
+                st.warning("No servers found matching the selected filters.")
+            else:
+                st.info(f"Showing {len(filtered_df)} server(s)")
+                
+                # Display servers as cards
+                for idx, row in filtered_df.iterrows():
+                    server_type = row.get('Server Type', 'Unknown')
+                    with st.expander(f"{row['Company']} - {row['Product Name']} ({server_type})"):
+                        display_server_details(row, idx)
     
     # Tab 3: User Selected Comparisons
     with tab3:
