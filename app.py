@@ -142,7 +142,7 @@ def display_server_details(row, key_prefix):
     with col1:
         st.markdown("**Basic Information**")
         st.write(f"**Company:** {row['Company']}")
-        st.write(f"**Product:** {row['Product Name']}")
+        st.write(f"**Product:** {format_product_name_for_display(row)}")
         st.write(f"**Server Type:** {server_type}")
     
     with col2:
@@ -166,6 +166,49 @@ def display_server_details(row, key_prefix):
     if pd.notna(row.get('Storage Controller')):
         st.write(f"**Storage Controller:**")
         display_list_with_show_more(row['Storage Controller'], f"controller_{key_prefix}")
+
+def format_supermicro_product_name(product_name):
+    """Format Supermicro product names from arrays to hyphenated model numbers"""
+    if isinstance(product_name, list):
+        return "-".join(str(item) for item in product_name)
+    elif isinstance(product_name, str):
+        # Check if it's a JSON array string
+        if product_name.startswith('[') and product_name.endswith(']'):
+            try:
+                import json
+                parsed = json.loads(product_name)
+                if isinstance(parsed, list):
+                    return "-".join(str(item) for item in parsed)
+            except:
+                pass
+        return product_name
+    return product_name
+
+def format_product_name_for_display(row):
+    """Format product name for display, handling Supermicro arrays"""
+    company = row.get('Company', '')
+    product_name = row.get('Product Name', '')
+    
+    if company == 'Supermicro':
+        return format_supermicro_product_name(product_name)
+    return product_name
+
+def normalize_supermicro_name(product_name):
+    """Normalize Supermicro product name for comparison"""
+    if isinstance(product_name, list):
+        return "-".join(str(item) for item in product_name)
+    elif isinstance(product_name, str):
+        if '-' in product_name:
+            return product_name
+        if product_name.startswith('[') and product_name.endswith(']'):
+            try:
+                import json
+                parsed = json.loads(product_name)
+                if isinstance(parsed, list):
+                    return "-".join(str(item) for item in parsed)
+            except:
+                pass
+    return product_name
 
 def get_company_from_table(table_name: str) -> str:
     """Extract company name from table name"""
@@ -401,7 +444,8 @@ def main():
                 # Display servers as cards
                 for idx, row in search_df.iterrows():
                     server_type = row.get('Server Type', 'Unknown')
-                    with st.expander(f"{row['Company']} - {row['Product Name']} ({server_type})"):
+                    display_product_name = format_product_name_for_display(row)
+                    with st.expander(f"{row['Company']} - {display_product_name} ({server_type})"):
                         display_server_details(row, f"search_{idx}")
         else:
             if len(filtered_df) == 0:
@@ -412,7 +456,8 @@ def main():
                 # Display servers as cards
                 for idx, row in filtered_df.iterrows():
                     server_type = row.get('Server Type', 'Unknown')
-                    with st.expander(f"{row['Company']} - {row['Product Name']} ({server_type})"):
+                    display_product_name = format_product_name_for_display(row)
+                    with st.expander(f"{row['Company']} - {display_product_name} ({server_type})"):
                         display_server_details(row, idx)
     
     # Tab 3: User Selected Comparisons
@@ -424,7 +469,10 @@ def main():
         
         # Get available servers for selection
         available_servers = filtered_df[['Company', 'Product Name', 'Server Type']].copy()
-        available_servers['Display Name'] = available_servers['Company'] + ' - ' + available_servers['Product Name']
+        available_servers['Display Name'] = available_servers.apply(
+            lambda row: f"{row['Company']} - {format_product_name_for_display(row)}", 
+            axis=1
+        )
         
         # Multi-select for servers
         selected_servers = st.multiselect(
@@ -490,6 +538,16 @@ def main():
             for dell_product in dell_servers['Product Name'].unique():
                 # Get mapping information for this Dell product
                 mapping_info = mapping_df[mapping_df['Dell Server'] == dell_product]
+                
+                # If not found, try with normalized name
+                if len(mapping_info) == 0:
+                    normalized_dell_product = normalize_product_name_for_comparison(dell_product, 'Dell')
+                    mapping_info = mapping_df[mapping_df['Dell Server'] == normalized_dell_product]
+                
+                # If not found, try with normalized name
+                if len(mapping_info) == 0:
+                    normalized_dell_product = normalize_product_name_for_comparison(dell_product, 'Dell')
+                    mapping_info = mapping_df[mapping_df['Dell Server'] == normalized_dell_product]
                 
                 if len(mapping_info) > 0:
                     mapping_row = mapping_info.iloc[0]
@@ -575,7 +633,7 @@ def main():
                             # Find Supermicro server data
                             supermicro_data = master_df[
                                 (master_df['Company'] == 'Supermicro') & 
-                                (master_df['Product Name'] == supermicro_server)
+                                (master_df['Product Name'].apply(normalize_supermicro_name) == supermicro_server)
                             ]
                             if len(supermicro_data) > 0:
                                 supermicro_row = supermicro_data.iloc[0]
