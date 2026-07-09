@@ -42,6 +42,16 @@ st.markdown("""
         border-radius: 5px;
         margin-top: 1rem;
     }
+    /* Hardware list styling */
+    ul {
+        margin: 8px 0;
+        padding-left: 20px;
+        line-height: 1.8;
+    }
+    li {
+        margin-bottom: 8px;
+        padding-left: 8px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -80,11 +90,13 @@ def format_display_value(value):
     if isinstance(value, list):
         if len(value) == 1:
             return value[0]
-        return "• " + "\n• ".join(str(item) for item in value)
+        # Return as HTML list for proper styling
+        list_items = [f"<li>{str(item)}</li>" for item in value]
+        return f"<ul>{''.join(list_items)}</ul>"
     return str(value)
 
 def display_list_with_show_more(value, key_prefix):
-    """Display list with show more functionality"""
+    """Display list with show more functionality using proper HTML list styling"""
     if value is None:
         st.write("N/A")
         return
@@ -92,8 +104,13 @@ def display_list_with_show_more(value, key_prefix):
         st.write(str(value))
         return
     
+    # Convert list items to HTML list elements
+    list_items = [f"<li>{str(item)}</li>" for item in value]
+    
     if len(value) <= 5:
-        st.write("• " + "\n• ".join(str(item) for item in value))
+        # Show all items as a proper HTML list
+        html_list = f"<ul>{''.join(list_items)}</ul>"
+        st.markdown(html_list, unsafe_allow_html=True)
     else:
         show_more_key = f"show_more_{key_prefix}"
         
@@ -102,17 +119,53 @@ def display_list_with_show_more(value, key_prefix):
             st.session_state[show_more_key] = False
         
         if st.session_state[show_more_key]:
-            # Show all items
-            st.write("• " + "\n• ".join(str(item) for item in value))
+            # Show all items as a proper HTML list
+            html_list = f"<ul>{''.join(list_items)}</ul>"
+            st.markdown(html_list, unsafe_allow_html=True)
             if st.button("Show less", key=f"less_{key_prefix}"):
                 st.session_state[show_more_key] = False
                 st.rerun()
         else:
-            # Show first 5 items
-            st.write("• " + "\n• ".join(str(item) for item in value[:5]))
+            # Show first 5 items as a proper HTML list
+            html_list = f"<ul>{''.join(list_items[:5])}</ul>"
+            st.markdown(html_list, unsafe_allow_html=True)
             if st.button(f"Show more ({len(value) - 5} more)", key=f"more_{key_prefix}"):
                 st.session_state[show_more_key] = True
                 st.rerun()
+
+def display_server_details(row, key_prefix):
+    """Display server details using the same format as the Catalog page"""
+    server_type = row.get('Server Type', 'Unknown')
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Basic Information**")
+        st.write(f"**Company:** {row['Company']}")
+        st.write(f"**Product:** {row['Product Name']}")
+        st.write(f"**Server Type:** {server_type}")
+    
+    with col2:
+        st.markdown("**Specifications**")
+        st.write(f"**CPU:**")
+        display_list_with_show_more(row.get('CPU', 'N/A'), f"cpu_{key_prefix}")
+        st.write(f"**GPU:**")
+        display_list_with_show_more(row.get('GPU', 'N/A'), f"gpu_{key_prefix}")
+        st.write(f"**Memory:**")
+        display_list_with_show_more(row.get('Memory', 'N/A'), f"memory_{key_prefix}")
+    
+    st.markdown("**Storage Information**")
+    col3, col4 = st.columns(2)
+    with col3:
+        st.write(f"**Drive Type:**")
+        display_list_with_show_more(row.get('Storage Drive Type', 'N/A'), f"drive_{key_prefix}")
+    with col4:
+        st.write(f"**Max Configuration:**")
+        display_list_with_show_more(row.get('Max Drive Configuration', 'N/A'), f"config_{key_prefix}")
+    
+    if pd.notna(row.get('Storage Controller')):
+        st.write(f"**Storage Controller:**")
+        display_list_with_show_more(row['Storage Controller'], f"controller_{key_prefix}")
 
 def get_company_from_table(table_name: str) -> str:
     """Extract company name from table name"""
@@ -258,14 +311,15 @@ def main():
             continue
             
         df_copy = df.copy()
-        df_copy['Company'] = get_company_from_table(table_name)
+        company = get_company_from_table(table_name)
+        df_copy['Company'] = company
         
         # Skip tables with unknown company (like server_mapping)
-        if df_copy['Company'] == 'Unknown':
+        if company == 'Unknown':
             continue
         
         # For Dell servers, use mapping data for server type
-        if df_copy['Company'].iloc[0] == 'Dell':
+        if company == 'Dell':
             try:
                 df_copy['Server Type'] = df_copy['Product Name'].apply(
                     lambda x: get_dell_server_type_from_mapping(x, mapping_df)
@@ -306,7 +360,7 @@ def main():
         filtered_df = filtered_df[filtered_df['Server Type'] == selected_server_type]
     
     # Main content area with tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 Catalog", "⚖️ Comparison", "📈 Gap Analysis", "🔗 Dell Mapped Comparisons"])
+    tab1, tab2, tab3 = st.tabs(["📊 Catalog", "🔗 Dell Mapped Comparisons", "⚖️ User Selected Comparisons"])
     
     # Tab 1: Catalog View
     with tab1:
@@ -321,39 +375,11 @@ def main():
             for idx, row in filtered_df.iterrows():
                 server_type = row.get('Server Type', 'Unknown')
                 with st.expander(f"{row['Company']} - {row['Product Name']} ({server_type})"):
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.markdown("**Basic Information**")
-                        st.write(f"**Company:** {row['Company']}")
-                        st.write(f"**Product:** {row['Product Name']}")
-                        st.write(f"**Server Type:** {server_type}")
-                    
-                    with col2:
-                        st.markdown("**Specifications**")
-                        st.write(f"**CPU:**")
-                        display_list_with_show_more(row.get('CPU', 'N/A'), f"cpu_{idx}")
-                        st.write(f"**GPU:**")
-                        display_list_with_show_more(row.get('GPU', 'N/A'), f"gpu_{idx}")
-                        st.write(f"**Memory:**")
-                        display_list_with_show_more(row.get('Memory', 'N/A'), f"memory_{idx}")
-                    
-                    st.markdown("**Storage Information**")
-                    col3, col4 = st.columns(2)
-                    with col3:
-                        st.write(f"**Drive Type:**")
-                        display_list_with_show_more(row.get('Storage Drive Type', 'N/A'), f"drive_{idx}")
-                    with col4:
-                        st.write(f"**Max Configuration:**")
-                        display_list_with_show_more(row.get('Max Drive Configuration', 'N/A'), f"config_{idx}")
-                    
-                    if pd.notna(row.get('Storage Controller')):
-                        st.write(f"**Storage Controller:**")
-                        display_list_with_show_more(row['Storage Controller'], f"controller_{idx}")
+                    display_server_details(row, idx)
     
-    # Tab 2: Side-by-Side Comparison
-    with tab2:
-        st.markdown('<h2 class="sub-header">Side-by-Side Comparison</h2>', unsafe_allow_html=True)
+    # Tab 3: User Selected Comparisons
+    with tab3:
+        st.markdown('<h2 class="sub-header">User Selected Comparisons</h2>', unsafe_allow_html=True)
         
         # Server selection for comparison
         st.subheader("Select Servers to Compare")
@@ -403,130 +429,8 @@ def main():
                                 display_list_with_show_more(server_data.get(col, 'N/A'), f"comp_{col}_{idx}")
                         st.markdown("---")
     
-    # Tab 3: Gap Analysis
-    with tab3:
-        st.markdown('<h2 class="sub-header">Gap Analysis</h2>', unsafe_allow_html=True)
-        
-        st.subheader("Dell vs Competitors Analysis")
-        
-        # Get Dell servers and competitor servers
-        dell_servers = master_df[master_df['Company'] == 'Dell']
-        competitor_servers = master_df[master_df['Company'] != 'Dell']
-        
-        if len(dell_servers) == 0:
-            st.warning("No Dell servers found in the database.")
-        elif len(competitor_servers) == 0:
-            st.warning("No competitor servers found in the database.")
-        else:
-            st.info(f"Analyzing {len(dell_servers)} Dell servers vs {len(competitor_servers)} competitor servers")
-            
-            # Overall statistics
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Dell Server Models", len(dell_servers))
-            with col2:
-                st.metric("Competitor Models", len(competitor_servers))
-            with col3:
-                st.metric("Total Companies", master_df['Company'].nunique())
-            
-            st.markdown("---")
-            
-            # Server type comparison
-            st.subheader("Server Type Coverage")
-            
-            # Get Dell server types from mapping data
-            if mapping_df is not None and len(mapping_df) > 0:
-                dell_server_types = set(mapping_df['Server Category'].unique())
-            else:
-                dell_server_types = set(dell_servers['Server Type'].unique())
-            
-            competitor_server_types = set(competitor_servers['Server Type'].unique())
-            
-            # Server types Dell has that competitors don't
-            dell_exclusive = dell_server_types - competitor_server_types
-            # Server types competitors have that Dell doesn't
-            competitor_exclusive = competitor_server_types - dell_server_types
-            # Server types both have
-            common_types = dell_server_types & competitor_server_types
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.markdown("**Dell Exclusive Server Types**")
-                if dell_exclusive:
-                    for server_type in sorted(dell_exclusive):
-                        st.write(f"• {server_type}")
-                else:
-                    st.write("None")
-            
-            with col2:
-                st.markdown("**Common Server Types**")
-                if common_types:
-                    for server_type in sorted(common_types):
-                        st.write(f"• {server_type}")
-                else:
-                    st.write("None")
-            
-            with col3:
-                st.markdown("**Competitor Exclusive Server Types**")
-                if competitor_exclusive:
-                    for server_type in sorted(competitor_exclusive):
-                        st.write(f"• {server_type}")
-                else:
-                    st.write("None")
-            
-            st.markdown("---")
-            
-            # Company breakdown
-            st.subheader("Market Coverage by Company")
-            
-            company_stats = master_df.groupby('Company').agg({
-                'Product Name': 'count',
-                'Server Type': 'nunique'
-            }).rename(columns={'Product Name': 'Total Models', 'Server Type': 'Server Types'})
-            
-            st.dataframe(company_stats, use_container_width=True)
-            
-            # Detailed gap analysis by server type
-            st.markdown("---")
-            st.subheader("Detailed Analysis by Server Type")
-            
-            selected_analysis_type = st.selectbox(
-                "Select Server Type for Detailed Analysis",
-                sorted(master_df['Server Type'].unique())
-            )
-            
-            if selected_analysis_type:
-                type_dell = dell_servers[dell_servers['Server Type'] == selected_analysis_type]
-                type_competitors = competitor_servers[competitor_servers['Server Type'] == selected_analysis_type]
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.markdown(f"**Dell {selected_analysis_type}**")
-                    if len(type_dell) > 0:
-                        st.write(f"Models: {len(type_dell)}")
-                        for idx, row in type_dell.head(5).iterrows():
-                            st.write(f"• {row['Product Name']}")
-                        if len(type_dell) > 5:
-                            st.write(f"... and {len(type_dell) - 5} more")
-                    else:
-                        st.write("No Dell models in this category")
-                
-                with col2:
-                    st.markdown(f"**Competitor {selected_analysis_type}**")
-                    if len(type_competitors) > 0:
-                        st.write(f"Models: {len(type_competitors)}")
-                        for idx, row in type_competitors.head(5).iterrows():
-                            company = row['Company']
-                            st.write(f"• {company}: {row['Product Name']}")
-                        if len(type_competitors) > 5:
-                            st.write(f"... and {len(type_competitors) - 5} more")
-                    else:
-                        st.write("No competitor models in this category")
-    
-    # Tab 4: Dell Mapped Comparisons
-    with tab4:
+    # Tab 2: Dell Mapped Comparisons
+    with tab2:
         st.markdown('<h2 class="sub-header">Dell Servers Mapped Comparisons</h2>', unsafe_allow_html=True)
         
         st.subheader("View Dell products with their mapped competitor equivalents")
@@ -542,8 +446,42 @@ def main():
         if len(dell_servers) == 0:
             st.warning("No Dell servers found in the database.")
         else:
-            # Filter by Dell product
-            dell_products = ['All'] + sorted(dell_servers['Product Name'].unique().tolist())
+            # Filter Dell servers to only include those with at least one valid competitor mapping
+            dell_products_with_mappings = []
+            
+            for dell_product in dell_servers['Product Name'].unique():
+                # Get mapping information for this Dell product
+                mapping_info = mapping_df[mapping_df['Dell Server'] == dell_product]
+                
+                if len(mapping_info) > 0:
+                    mapping_row = mapping_info.iloc[0]
+                    lenovo_equivalent = mapping_row['Lenovo Server']
+                    supermicro_equivalent = mapping_row['Supermicro Server']
+                    
+                    # Check if at least one valid mapping exists
+                    has_valid_lenovo = (
+                        pd.notna(lenovo_equivalent) and 
+                        str(lenovo_equivalent).strip() != '' and 
+                        str(lenovo_equivalent).upper() != 'TBD' and
+                        str(lenovo_equivalent).strip() != 'No direct comparable yet'
+                    )
+                    has_valid_supermicro = (
+                        pd.notna(supermicro_equivalent) and 
+                        str(supermicro_equivalent).strip() != '' and 
+                        str(supermicro_equivalent).upper() != 'TBD' and
+                        str(supermicro_equivalent).strip() != 'No direct comparable yet'
+                    )
+                    
+                    # Include if at least one valid mapping exists
+                    if has_valid_lenovo or has_valid_supermicro:
+                        dell_products_with_mappings.append(dell_product)
+            
+            # Filter by Dell product (only show products with valid mappings)
+            if len(dell_products_with_mappings) == 0:
+                st.warning("No Dell servers with valid competitor mappings found in the database.")
+                return
+            
+            dell_products = ['All'] + sorted(dell_products_with_mappings)
             selected_dell_product = st.selectbox("Select Dell Product", dell_products)
             
             if selected_dell_product == 'All':
@@ -557,15 +495,7 @@ def main():
                 
                 # Display Dell server info
                 st.markdown("### Dell Server Information")
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write(f"**Product:** {dell_server_data['Product Name']}")
-                    st.write(f"**Server Type:** {dell_server_data['Server Type']}")
-                with col2:
-                    st.write(f"**CPU:**")
-                    display_list_with_show_more(dell_server_data.get('CPU', 'N/A'), f"dell_cpu")
-                    st.write(f"**Memory:**")
-                    display_list_with_show_more(dell_server_data.get('Memory', 'N/A'), f"dell_memory")
+                display_server_details(dell_server_data, "dell")
                 
                 st.markdown("---")
                 
@@ -593,12 +523,7 @@ def main():
                             ]
                             if len(lenovo_data) > 0:
                                 lenovo_row = lenovo_data.iloc[0]
-                                st.write(f"**Product:** {lenovo_row['Product Name']}")
-                                st.write(f"**Server Type:** {lenovo_row['Server Type']}")
-                                st.write(f"**CPU:**")
-                                display_list_with_show_more(lenovo_row.get('CPU', 'N/A'), f"lenovo_cpu")
-                                st.write(f"**Memory:**")
-                                display_list_with_show_more(lenovo_row.get('Memory', 'N/A'), f"lenovo_memory")
+                                display_server_details(lenovo_row, "lenovo")
                             else:
                                 st.write(f"Product '{lenovo_server}' not found in database")
                     
@@ -616,12 +541,7 @@ def main():
                             ]
                             if len(supermicro_data) > 0:
                                 supermicro_row = supermicro_data.iloc[0]
-                                st.write(f"**Product:** {supermicro_row['Product Name']}")
-                                st.write(f"**Server Type:** {supermicro_row['Server Type']}")
-                                st.write(f"**CPU:**")
-                                display_list_with_show_more(supermicro_row.get('CPU', 'N/A'), f"supermicro_cpu")
-                                st.write(f"**Memory:**")
-                                display_list_with_show_more(supermicro_row.get('Memory', 'N/A'), f"supermicro_memory")
+                                display_server_details(supermicro_row, "supermicro")
                             else:
                                 st.write(f"Product '{supermicro_server}' not found in database")
     
