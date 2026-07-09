@@ -253,8 +253,16 @@ def main():
     # Combine all data into a single DataFrame with company and server type info
     combined_data = []
     for table_name, df in all_data.items():
+        # Skip the server_mapping table - it's only for reference, not for display
+        if table_name == 'server_mapping':
+            continue
+            
         df_copy = df.copy()
         df_copy['Company'] = get_company_from_table(table_name)
+        
+        # Skip tables with unknown company (like server_mapping)
+        if df_copy['Company'] == 'Unknown':
+            continue
         
         # For Dell servers, use mapping data for server type
         if df_copy['Company'].iloc[0] == 'Dell':
