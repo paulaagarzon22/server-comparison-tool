@@ -153,47 +153,6 @@ def display_list_with_show_more(value, key_prefix):
                 st.session_state[show_more_key] = True
                 st.rerun()
 
-def format_compact_list(value):
-    """Format list for compact HTML table display"""
-    if value is None:
-        return "N/A"
-    if not isinstance(value, list):
-        return str(value)
-    
-    # Separate summary lines from configuration options
-    summary_lines = []
-    config_options = []
-    
-    for item in value:
-        item_str = str(item).strip()
-        if item_str.startswith("[Summary:"):
-            summary_lines.append(item_str)
-        elif item_str.startswith("[Storage]"):
-            # Remove [Storage] prefix and add to config options
-            clean_item = item_str.replace("[Storage]", "").strip()
-            config_options.append(clean_item)
-        else:
-            # Keep as is for other categories
-            config_options.append(item_str)
-    
-    # Build HTML content
-    html_parts = []
-    
-    # Add summary lines
-    for summary in summary_lines:
-        html_parts.append(f"<div style='font-weight: bold; color: #333; margin-bottom: 5px;'>{summary}</div>")
-    
-    # Add configuration options (show first 3 only for compact display)
-    if config_options:
-        display_options = config_options[:3]  # Show only first 3 for compact table
-        for option in display_options:
-            html_parts.append(f"<div style='margin-bottom: 3px;'>• {option}</div>")
-        
-        if len(config_options) > 3:
-            html_parts.append(f"<div style='color: #666; font-style: italic;'>+ {len(config_options) - 3} more options</div>")
-    
-    return ''.join(html_parts)
-
 def display_list_with_show_more_compact(value, key_prefix):
     """Display list with show more functionality in compact format for comparison columns"""
     if value is None:
@@ -768,140 +727,67 @@ def main():
                         if len(supermicro_data) > 0:
                             supermicro_row = supermicro_data.iloc[0]
                     
-                    # Create HTML table with actual vertical borders for full comparison
-                    st.markdown("""
-                    <style>
-                    .comparison-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        border: 1px solid #ddd;
-                        border-radius: 5px;
-                        overflow: hidden;
-                    }
-                    .comparison-table th, .comparison-table td {
-                        border: none;
-                        padding: 15px;
-                        vertical-align: top;
-                    }
-                    .comparison-table td {
-                        border-right: 2px solid #E0E0E0;
-                    }
-                    .comparison-table td:last-child {
-                        border-right: none;
-                    }
-                    .spec-category {
-                        font-weight: bold;
-                        margin-bottom: 5px;
-                        font-size: 13px;
-                        color: #333;
-                    }
-                    .spec-content {
-                        font-size: 12px;
-                        margin-bottom: 10px;
-                    }
-                    </style>
-                    """, unsafe_allow_html=True)
+                    # Create 3-column comparison with visual dividers using markdown
+                    col_dell, col_lenovo, col_supermicro = st.columns([1, 1, 1])
                     
-                    # Generate HTML table content with full comparison data
-                    table_html = "<table class='comparison-table'>"
-                    
-                    # Header row
-                    table_html += "<tr>"
-                    
-                    # Dell column header
-                    table_html += f"""
-                    <td>
-                        <div style='border-left: 4px solid #0076CE; padding-left: 10px; margin-bottom: 15px;'>
-                            <div style='font-size: 16px; font-weight: bold; color: #0076CE; margin-bottom: 5px;'>Dell</div>
-                            <div style='font-size: 14px; font-weight: bold;'>{selected_dell_product}</div>
-                            <div style='font-size: 12px; color: #666;'>{dell_server_data['Company']}</div>
-                            <div style='font-size: 12px; color: #666;'>{dell_server_data['Server Type']}</div>
+                    # Dell column
+                    with col_dell:
+                        st.markdown(f"""
+                        <div style='border-right: 2px solid #E0E0E0; padding-right: 15px;'>
+                            <div style='border-left: 4px solid #0076CE; padding-left: 10px; margin-bottom: 15px;'>
+                                <div style='font-size: 16px; font-weight: bold; color: #0076CE; margin-bottom: 5px;'>Dell</div>
+                                <div style='font-size: 14px; font-weight: bold;'>{selected_dell_product}</div>
+                            </div>
                         </div>
-                    </td>
-                    """
+                        """, unsafe_allow_html=True)
+                        st.markdown("---")
+                        display_server_details_compact(dell_server_data, "dell_compact")
                     
-                    # Lenovo column header
-                    if lenovo_row is not None:
-                        table_html += f"""
-                        <td>
-                            <div style='border-left: 4px solid #E2231A; padding-left: 10px; margin-bottom: 15px;'>
-                                <div style='font-size: 16px; font-weight: bold; color: #E2231A; margin-bottom: 5px;'>Lenovo</div>
-                                <div style='font-size: 14px; font-weight: bold;'>{lenovo_server}</div>
-                                <div style='font-size: 12px; color: #666;'>{lenovo_row['Company']}</div>
-                                <div style='font-size: 12px; color: #666;'>{lenovo_row['Server Type']}</div>
-                            </div>
-                        </td>
-                        """
-                    else:
-                        table_html += f"""
-                        <td>
-                            <div style='border-left: 4px solid #E2231A; padding-left: 10px; margin-bottom: 15px;'>
-                                <div style='font-size: 16px; font-weight: bold; color: #E2231A; margin-bottom: 5px;'>Lenovo</div>
-                                <div style='font-size: 12px; color: #666;'>No comparable system has been mapped</div>
-                            </div>
-                        </td>
-                        """
-                    
-                    # Supermicro column header
-                    if supermicro_row is not None:
-                        table_html += f"""
-                        <td>
-                            <div style='border-left: 4px solid #28A745; padding-left: 10px; margin-bottom: 15px;'>
-                                <div style='font-size: 16px; font-weight: bold; color: #28A745; margin-bottom: 5px;'>Supermicro</div>
-                                <div style='font-size: 14px; font-weight: bold;'>{supermicro_server}</div>
-                                <div style='font-size: 12px; color: #666;'>{supermicro_row['Company']}</div>
-                                <div style='font-size: 12px; color: #666;'>{supermicro_row['Server Type']}</div>
-                            </div>
-                        </td>
-                        """
-                    else:
-                        table_html += f"""
-                        <td>
-                            <div style='border-left: 4px solid #28A745; padding-left: 10px; margin-bottom: 15px;'>
-                                <div style='font-size: 16px; font-weight: bold; color: #28A745; margin-bottom: 5px;'>Supermicro</div>
-                                <div style='font-size: 12px; color: #666;'>No comparable system has been mapped</div>
-                            </div>
-                        </td>
-                        """
-                    
-                    table_html += "</tr>"
-                    
-                    # Specification rows
-                    categories = [
-                        ('CPU', dell_server_data.get('CPU', 'N/A')),
-                        ('GPU', dell_server_data.get('GPU', 'N/A')),
-                        ('Memory', dell_server_data.get('Memory', 'N/A')),
-                        ('Storage Drive Type', dell_server_data.get('Storage Drive Type', 'N/A')),
-                        ('Max Configuration', dell_server_data.get('Max Drive Configuration', 'N/A'))
-                    ]
-                    
-                    for category_name, dell_value in categories:
-                        table_html += "<tr>"
-                        
-                        # Dell column
-                        table_html += f"<td><div class='spec-category'>{category_name}</div>"
-                        table_html += f"<div class='spec-content'>{format_compact_list(dell_value)}</div></td>"
-                        
-                        # Lenovo column
+                    # Lenovo column
+                    with col_lenovo:
                         if lenovo_row is not None:
-                            lenovo_value = lenovo_row.get(category_name, 'N/A')
-                            table_html += f"<td><div class='spec-category'>{category_name}</div>"
-                            table_html += f"<div class='spec-content'>{format_compact_list(lenovo_value)}</div></td>"
+                            st.markdown(f"""
+                            <div style='border-right: 2px solid #E0E0E0; padding-right: 15px;'>
+                                <div style='border-left: 4px solid #E2231A; padding-left: 10px; margin-bottom: 15px;'>
+                                    <div style='font-size: 16px; font-weight: bold; color: #E2231A; margin-bottom: 5px;'>Lenovo</div>
+                                    <div style='font-size: 14px; font-weight: bold;'>{lenovo_server}</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            st.markdown("---")
+                            display_server_details_compact(lenovo_row, "lenovo_compact")
                         else:
-                            table_html += f"<td><div class='spec-category'>{category_name}</div><div class='spec-content'>N/A</div></td>"
-                        
-                        # Supermicro column
-                        if supermicro_row is not None:
-                            supermicro_value = supermicro_row.get(category_name, 'N/A')
-                            table_html += f"<td><div class='spec-category'>{category_name}</div>"
-                            table_html += f"<div class='spec-content'>{format_compact_list(supermicro_value)}</div></td>"
-                        else:
-                            table_html += f"<td><div class='spec-category'>{category_name}</div><div class='spec-content'>N/A</div></td>"
-                        
-                        table_html += "</tr>"
+                            st.markdown(f"""
+                            <div style='border-right: 2px solid #E0E0E0; padding-right: 15px;'>
+                                <div style='border-left: 4px solid #E2231A; padding-left: 10px; margin-bottom: 15px;'>
+                                    <div style='font-size: 16px; font-weight: bold; color: #E2231A; margin-bottom: 5px;'>Lenovo</div>
+                                    <div style='font-size: 12px; color: #666;'>No comparable system has been mapped</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
                     
-                    table_html += "</table>"
-                    st.markdown(table_html, unsafe_allow_html=True)
+                    # Supermicro column
+                    with col_supermicro:
+                        if supermicro_row is not None:
+                            st.markdown(f"""
+                            <div style='padding-left: 10px;'>
+                                <div style='border-left: 4px solid #28A745; padding-left: 10px; margin-bottom: 15px;'>
+                                    <div style='font-size: 16px; font-weight: bold; color: #28A745; margin-bottom: 5px;'>Supermicro</div>
+                                    <div style='font-size: 14px; font-weight: bold;'>{supermicro_server}</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            st.markdown("---")
+                            display_server_details_compact(supermicro_row, "supermicro_compact")
+                        else:
+                            st.markdown(f"""
+                            <div style='padding-left: 10px;'>
+                                <div style='border-left: 4px solid #28A745; padding-left: 10px; margin-bottom: 15px;'>
+                                    <div style='font-size: 16px; font-weight: bold; color: #28A745; margin-bottom: 5px;'>Supermicro</div>
+                                    <div style='font-size: 12px; color: #666;'>No comparable system has been mapped</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
     
     # Footer
     st.markdown("---")
