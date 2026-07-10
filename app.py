@@ -104,10 +104,30 @@ def display_list_with_show_more(value, key_prefix):
         st.write(str(value))
         return
     
-    # Convert list items to HTML list elements
-    list_items = [f"<li>{str(item)}</li>" for item in value]
+    # Separate summary lines from configuration options
+    summary_lines = []
+    config_options = []
     
-    if len(value) <= 5:
+    for item in value:
+        item_str = str(item).strip()
+        if item_str.startswith("[Summary:"):
+            summary_lines.append(item_str)
+        elif item_str.startswith("[Storage]"):
+            # Remove [Storage] prefix and add to config options
+            clean_item = item_str.replace("[Storage]", "").strip()
+            config_options.append(clean_item)
+        else:
+            # Keep as is for other categories
+            config_options.append(item_str)
+    
+    # Display summary lines outside of bullet list
+    for summary in summary_lines:
+        st.markdown(f"**{summary}**")
+    
+    # Convert config options to HTML list elements
+    list_items = [f"<li>{str(item)}</li>" for item in config_options]
+    
+    if len(config_options) <= 5:
         # Show all items as a proper HTML list
         html_list = f"<ul>{''.join(list_items)}</ul>"
         st.markdown(html_list, unsafe_allow_html=True)
@@ -129,7 +149,7 @@ def display_list_with_show_more(value, key_prefix):
             # Show first 5 items as a proper HTML list
             html_list = f"<ul>{''.join(list_items[:5])}</ul>"
             st.markdown(html_list, unsafe_allow_html=True)
-            if st.button(f"Show more ({len(value) - 5} more)", key=f"more_{key_prefix}"):
+            if st.button(f"Show more ({len(config_options) - 5} more)", key=f"more_{key_prefix}"):
                 st.session_state[show_more_key] = True
                 st.rerun()
 
