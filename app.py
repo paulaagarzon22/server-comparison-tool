@@ -153,6 +153,66 @@ def display_list_with_show_more(value, key_prefix):
                 st.session_state[show_more_key] = True
                 st.rerun()
 
+def display_list_with_show_more_compact(value, key_prefix):
+    """Display list with show more functionality in compact format for comparison columns"""
+    if value is None:
+        st.write("N/A")
+        return
+    if not isinstance(value, list):
+        st.write(str(value))
+        return
+    
+    # Separate summary lines from configuration options
+    summary_lines = []
+    config_options = []
+    
+    for item in value:
+        item_str = str(item).strip()
+        if item_str.startswith("[Summary:"):
+            summary_lines.append(item_str)
+        elif item_str.startswith("[Storage]"):
+            # Remove [Storage] prefix and add to config options
+            clean_item = item_str.replace("[Storage]", "").strip()
+            config_options.append(clean_item)
+        else:
+            # Keep as is for other categories
+            config_options.append(item_str)
+    
+    # Display summary lines
+    for summary in summary_lines:
+        st.markdown(f"*{summary}*")
+    
+    # Display configuration options as bullet list
+    if config_options:
+        if len(config_options) <= 3:  # Show fewer items in compact view
+            # Show all items as a proper HTML list
+            list_items = [f"<li>{str(item)}</li>" for item in config_options]
+            html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 12px;'>{''.join(list_items)}</ul>"
+            st.markdown(html_list, unsafe_allow_html=True)
+        else:
+            show_more_key = f"show_more_{key_prefix}"
+            
+            # Initialize session state if not exists
+            if show_more_key not in st.session_state:
+                st.session_state[show_more_key] = False
+            
+            if st.session_state[show_more_key]:
+                # Show all items as a proper HTML list
+                list_items = [f"<li>{str(item)}</li>" for item in config_options]
+                html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 12px;'>{''.join(list_items)}</ul>"
+                st.markdown(html_list, unsafe_allow_html=True)
+                if st.button("Show less", key=f"less_{key_prefix}"):
+                    st.session_state[show_more_key] = False
+                    st.rerun()
+            else:
+                # Show first 3 items as a proper HTML list
+                list_items = [f"<li>{str(item)}</li>" for item in config_options[:3]]
+                html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 12px;'>{''.join(list_items)}</ul>"
+                st.markdown(html_list, unsafe_allow_html=True)
+                if st.button(f"Show {len(config_options) - 3} more", key=f"more_{key_prefix}"):
+                    st.session_state[show_more_key] = True
+                    st.rerun()
+
 def display_server_details(row, key_prefix):
     """Display server details using specification matrix layout"""
     server_type = row.get('Server Type', 'Unknown')
@@ -183,6 +243,34 @@ def display_server_details(row, key_prefix):
         with col2:
             display_list_with_show_more(value, f"{category.lower()}_{key_prefix}")
         st.markdown("---")
+
+def display_server_details_compact(row, key_prefix):
+    """Display server details in compact format for side-by-side comparison"""
+    server_type = row.get('Server Type', 'Unknown')
+    
+    # Display basic information in compact format
+    st.markdown(f"""
+    <div style='border: 1px solid #ddd; padding: 10px; border-radius: 5px; margin-bottom: 10px; background-color: #f9f9f9;'>
+        <div style='font-size: 14px; font-weight: bold;'>{format_product_name_for_display(row)}</div>
+        <div style='font-size: 12px;'>{row['Company']}</div>
+        <div style='font-size: 12px;'>{server_type}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Define specification categories
+    categories = [
+        ('CPU', row.get('CPU', 'N/A')),
+        ('GPU', row.get('GPU', 'N/A')),
+        ('Memory', row.get('Memory', 'N/A')),
+        ('Storage Drive Type', row.get('Storage Drive Type', 'N/A')),
+        ('Max Configuration', row.get('Max Drive Configuration', 'N/A'))
+    ]
+    
+    # Create compact specification display
+    for category, value in categories:
+        st.markdown(f"**{category}**")
+        display_list_with_show_more_compact(value, f"{category.lower()}_{key_prefix}")
+        st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
 def format_supermicro_product_name(product_name):
     """Format Supermicro product names from arrays to hyphenated model numbers"""
@@ -606,57 +694,67 @@ def main():
                 # Get mapping information
                 mapping_info = mapping_df[mapping_df['Dell Server'] == selected_dell_product]
                 
-                # Display Dell server info
-                st.markdown("### Dell Server Information")
-                display_server_details(dell_server_data, "dell")
-                
-                st.markdown("---")
-                
-                # Display mapped comparisons
-                st.markdown("### Mapped Competitor Comparisons")
+                # Display side-by-side comparison
+                st.markdown("### Side-by-Side Comparison")
+                st.markdown(f"**{selected_dell_product}** vs Competitors")
                 
                 if len(mapping_info) == 0:
                     st.warning("No comparable system has been mapped for this Dell product.")
                 else:
                     mapping_row = mapping_info.iloc[0]
                     
-                    col1, col2 = st.columns(2)
+                    # Get competitor data
+                    lenovo_server = mapping_row['Lenovo Server']
+                    supermicro_server = mapping_row['Supermicro Server']
                     
-                    # Lenovo comparison
-                    with col1:
-                        st.markdown("**Lenovo Equivalent**")
-                        lenovo_server = mapping_row['Lenovo Server']
-                        if pd.isna(lenovo_server) or lenovo_server == 'TBD' or lenovo_server == '':
-                            st.write("No comparable system has been mapped")
-                        else:
-                            # Find Lenovo server data
-                            lenovo_data = master_df[
-                                (master_df['Company'] == 'Lenovo') & 
-                                (master_df['Product Name'] == lenovo_server)
-                            ]
-                            if len(lenovo_data) > 0:
-                                lenovo_row = lenovo_data.iloc[0]
-                                display_server_details(lenovo_row, "lenovo")
-                            else:
-                                st.write(f"Product '{lenovo_server}' not found in database")
+                    # Find Lenovo server data
+                    lenovo_row = None
+                    if pd.notna(lenovo_server) and lenovo_server != 'TBD' and lenovo_server != '':
+                        lenovo_data = master_df[
+                            (master_df['Company'] == 'Lenovo') & 
+                            (master_df['Product Name'] == lenovo_server)
+                        ]
+                        if len(lenovo_data) > 0:
+                            lenovo_row = lenovo_data.iloc[0]
                     
-                    # Supermicro comparison
-                    with col2:
-                        st.markdown("**Supermicro Equivalent**")
-                        supermicro_server = mapping_row['Supermicro Server']
-                        if pd.isna(supermicro_server) or supermicro_server == 'TBD' or supermicro_server == '':
-                            st.write("No comparable system has been mapped")
+                    # Find Supermicro server data
+                    supermicro_row = None
+                    if pd.notna(supermicro_server) and supermicro_server != 'TBD' and supermicro_server != '':
+                        supermicro_data = master_df[
+                            (master_df['Company'] == 'Supermicro') & 
+                            (master_df['Product Name'].apply(normalize_supermicro_name) == supermicro_server)
+                        ]
+                        if len(supermicro_data) > 0:
+                            supermicro_row = supermicro_data.iloc[0]
+                    
+                    # Create 3-column comparison grid
+                    col_dell, col_lenovo, col_supermicro = st.columns(3)
+                    
+                    # Dell column
+                    with col_dell:
+                        st.markdown(f"**Dell**")
+                        st.markdown(f"**{selected_dell_product}**")
+                        display_server_details_compact(dell_server_data, "dell_compact")
+                    
+                    # Lenovo column
+                    with col_lenovo:
+                        if lenovo_row is not None:
+                            st.markdown(f"**Lenovo**")
+                            st.markdown(f"**{lenovo_server}**")
+                            display_server_details_compact(lenovo_row, "lenovo_compact")
                         else:
-                            # Find Supermicro server data
-                            supermicro_data = master_df[
-                                (master_df['Company'] == 'Supermicro') & 
-                                (master_df['Product Name'].apply(normalize_supermicro_name) == supermicro_server)
-                            ]
-                            if len(supermicro_data) > 0:
-                                supermicro_row = supermicro_data.iloc[0]
-                                display_server_details(supermicro_row, "supermicro")
-                            else:
-                                st.write(f"Product '{supermicro_server}' not found in database")
+                            st.markdown(f"**Lenovo**")
+                            st.write("No comparable system has been mapped")
+                    
+                    # Supermicro column
+                    with col_supermicro:
+                        if supermicro_row is not None:
+                            st.markdown(f"**Supermicro**")
+                            st.markdown(f"**{supermicro_server}**")
+                            display_server_details_compact(supermicro_row, "supermicro_compact")
+                        else:
+                            st.markdown(f"**Supermicro**")
+                            st.write("No comparable system has been mapped")
     
     # Footer
     st.markdown("---")
