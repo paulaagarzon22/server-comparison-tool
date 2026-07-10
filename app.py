@@ -727,20 +727,25 @@ def main():
                         if len(supermicro_data) > 0:
                             supermicro_row = supermicro_data.iloc[0]
                     
-                    # Create 3-column comparison grid with separators
+                    # Create 3-column comparison grid with full vertical dividers
                     st.markdown("""
                     <style>
                     .comparison-container {
                         display: flex;
-                        gap: 10px;
+                        gap: 0px;
                         margin-bottom: 20px;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        overflow: hidden;
                     }
                     .comparison-column {
                         flex: 1;
                         padding: 15px;
-                        border: 1px solid #ddd;
-                        border-radius: 5px;
+                        border-right: 2px solid #ddd;
                         background-color: #fff;
+                    }
+                    .comparison-column:last-child {
+                        border-right: none;
                     }
                     </style>
                     """, unsafe_allow_html=True)
@@ -750,9 +755,11 @@ def main():
                     # Dell column
                     with col_dell:
                         st.markdown(f"""
-                        <div class='comparison-column' style='border-left: 4px solid #0076CE;'>
-                            <div style='font-size: 16px; font-weight: bold; color: #0076CE; margin-bottom: 5px;'>Dell</div>
-                            <div style='font-size: 14px; font-weight: bold; margin-bottom: 10px;'>{selected_dell_product}</div>
+                        <div class='comparison-column'>
+                            <div style='border-left: 4px solid #0076CE; padding-left: 10px; margin-bottom: 15px;'>
+                                <div style='font-size: 16px; font-weight: bold; color: #0076CE; margin-bottom: 5px;'>Dell</div>
+                                <div style='font-size: 14px; font-weight: bold;'>{selected_dell_product}</div>
+                            </div>
                         </div>
                         """, unsafe_allow_html=True)
                         display_server_details_compact(dell_server_data, "dell_compact")
@@ -761,17 +768,21 @@ def main():
                     with col_lenovo:
                         if lenovo_row is not None:
                             st.markdown(f"""
-                            <div class='comparison-column' style='border-left: 4px solid #E2231A;'>
-                                <div style='font-size: 16px; font-weight: bold; color: #E2231A; margin-bottom: 5px;'>Lenovo</div>
-                                <div style='font-size: 14px; font-weight: bold; margin-bottom: 10px;'>{lenovo_server}</div>
+                            <div class='comparison-column'>
+                                <div style='border-left: 4px solid #E2231A; padding-left: 10px; margin-bottom: 15px;'>
+                                    <div style='font-size: 16px; font-weight: bold; color: #E2231A; margin-bottom: 5px;'>Lenovo</div>
+                                    <div style='font-size: 14px; font-weight: bold;'>{lenovo_server}</div>
+                                </div>
                             </div>
                             """, unsafe_allow_html=True)
                             display_server_details_compact(lenovo_row, "lenovo_compact")
                         else:
                             st.markdown(f"""
-                            <div class='comparison-column' style='border-left: 4px solid #E2231A;'>
-                                <div style='font-size: 16px; font-weight: bold; color: #E2231A; margin-bottom: 5px;'>Lenovo</div>
-                                <div style='font-size: 12px; color: #666; margin-bottom: 10px;'>No comparable system has been mapped</div>
+                            <div class='comparison-column'>
+                                <div style='border-left: 4px solid #E2231A; padding-left: 10px; margin-bottom: 15px;'>
+                                    <div style='font-size: 16px; font-weight: bold; color: #E2231A; margin-bottom: 5px;'>Lenovo</div>
+                                    <div style='font-size: 12px; color: #666;'>No comparable system has been mapped</div>
+                                </div>
                             </div>
                             """, unsafe_allow_html=True)
                     
@@ -779,17 +790,21 @@ def main():
                     with col_supermicro:
                         if supermicro_row is not None:
                             st.markdown(f"""
-                            <div class='comparison-column' style='border-left: 4px solid #009CDE;'>
-                                <div style='font-size: 16px; font-weight: bold; color: #009CDE; margin-bottom: 5px;'>Supermicro</div>
-                                <div style='font-size: 14px; font-weight: bold; margin-bottom: 10px;'>{supermicro_server}</div>
+                            <div class='comparison-column'>
+                                <div style='border-left: 4px solid #28A745; padding-left: 10px; margin-bottom: 15px;'>
+                                    <div style='font-size: 16px; font-weight: bold; color: #28A745; margin-bottom: 5px;'>Supermicro</div>
+                                    <div style='font-size: 14px; font-weight: bold;'>{supermicro_server}</div>
+                                </div>
                             </div>
                             """, unsafe_allow_html=True)
                             display_server_details_compact(supermicro_row, "supermicro_compact")
                         else:
                             st.markdown(f"""
-                            <div class='comparison-column' style='border-left: 4px solid #009CDE;'>
-                                <div style='font-size: 16px; font-weight: bold; color: #009CDE; margin-bottom: 5px;'>Supermicro</div>
-                                <div style='font-size: 12px; color: #666; margin-bottom: 10px;'>No comparable system has been mapped</div>
+                            <div class='comparison-column'>
+                                <div style='border-left: 4px solid #28A745; padding-left: 10px; margin-bottom: 15px;'>
+                                    <div style='font-size: 16px; font-weight: bold; color: #28A745; margin-bottom: 5px;'>Supermicro</div>
+                                    <div style='font-size: 12px; color: #666;'>No comparable system has been mapped</div>
+                                </div>
                             </div>
                             """, unsafe_allow_html=True)
     
