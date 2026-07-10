@@ -162,10 +162,6 @@ def display_server_details(row, key_prefix):
     with col4:
         st.write(f"**Max Configuration:**")
         display_list_with_show_more(row.get('Max Drive Configuration', 'N/A'), f"config_{key_prefix}")
-    
-    if pd.notna(row.get('Storage Controller')):
-        st.write(f"**Storage Controller:**")
-        display_list_with_show_more(row['Storage Controller'], f"controller_{key_prefix}")
 
 def format_supermicro_product_name(product_name):
     """Format Supermicro product names from arrays to hyphenated model numbers"""
@@ -502,7 +498,7 @@ def main():
             
             # Define columns to compare
             compare_columns = ['Company', 'Product Name', 'Server Type', 'CPU', 'GPU', 'Memory', 
-                            'Storage Drive Type', 'Max Drive Configuration', 'Storage Controller']
+                            'Storage Drive Type', 'Max Drive Configuration']
             
             # Create comparison display
             for col in compare_columns:
