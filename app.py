@@ -153,60 +153,6 @@ def display_list_with_show_more(value, key_prefix):
                 st.session_state[show_more_key] = True
                 st.rerun()
 
-def display_list_with_show_more_compact(value, key_prefix):
-    """Display list with show more functionality in compact format for table cells"""
-    if value is None:
-        return "N/A"
-    if not isinstance(value, list):
-        return str(value)
-    
-    # Separate summary lines from configuration options
-    summary_lines = []
-    config_options = []
-    
-    for item in value:
-        item_str = str(item).strip()
-        if item_str.startswith("[Summary:"):
-            summary_lines.append(item_str)
-        elif item_str.startswith("[Storage]"):
-            # Remove [Storage] prefix and add to config options
-            clean_item = item_str.replace("[Storage]", "").strip()
-            config_options.append(clean_item)
-        else:
-            # Keep as is for other categories
-            config_options.append(item_str)
-    
-    # Build the display content
-    content_parts = []
-    
-    # Add summary lines
-    for summary in summary_lines:
-        content_parts.append(f"<div style='font-weight: bold; margin-bottom: 5px;'>{summary}</div>")
-    
-    # Add configuration options as bullet list
-    if config_options:
-        if len(config_options) <= 5:
-            # Show all items as a proper HTML list
-            list_items = [f"<li>{str(item)}</li>" for item in config_options]
-            content_parts.append(f"<ul style='margin: 0; padding-left: 20px;'>{''.join(list_items)}</ul>")
-        else:
-            show_more_key = f"show_more_{key_prefix}"
-            
-            # Initialize session state if not exists
-            if show_more_key not in st.session_state:
-                st.session_state[show_more_key] = False
-            
-            if st.session_state[show_more_key]:
-                # Show all items as a proper HTML list
-                list_items = [f"<li>{str(item)}</li>" for item in config_options]
-                content_parts.append(f"<ul style='margin: 0; padding-left: 20px;'>{''.join(list_items)}</ul>")
-            else:
-                # Show first 5 items as a proper HTML list
-                list_items = [f"<li>{str(item)}</li>" for item in config_options[:5]]
-                content_parts.append(f"<ul style='margin: 0; padding-left: 20px;'>{''.join(list_items)}</ul>")
-    
-    return ''.join(content_parts)
-
 def display_server_details(row, key_prefix):
     """Display server details using specification matrix layout"""
     server_type = row.get('Server Type', 'Unknown')
@@ -229,127 +175,14 @@ def display_server_details(row, key_prefix):
         ('Max Configuration', row.get('Max Drive Configuration', 'N/A'))
     ]
     
-    # Create specification matrix
-    st.markdown("""
-    <style>
-    .spec-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-    .spec-table th, .spec-table td {
-        border: 1px solid #ddd;
-        padding: 12px;
-        text-align: left;
-        vertical-align: top;
-    }
-    .spec-table th {
-        background-color: #f2f2f2;
-        font-weight: bold;
-        width: 20%;
-    }
-    .spec-table td {
-        width: 80%;
-    }
-    .spec-table tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Build table HTML
-    table_html = "<table class='spec-table'>"
-    
+    # Create specification matrix using Streamlit columns
     for category, value in categories:
-        table_html += f"<tr><th>{category}</th><td>{display_list_with_show_more_compact(value, f"{category.lower()}_{key_prefix}")}</td></tr>"
-    
-    table_html += "</table>"
-    st.markdown(table_html, unsafe_allow_html=True)
-    
-    # Add show more buttons in a compact row
-    button_cols = st.columns(len(categories))
-    for idx, (category, value) in enumerate(categories):
-        with button_cols[idx]:
-            if isinstance(value, list) and len(value) > 5:
-                show_more_key = f"show_more_{category.lower()}_{key_prefix}"
-                if show_more_key not in st.session_state:
-                    st.session_state[show_more_key] = False
-                
-                if st.session_state[show_more_key]:
-                    if st.button("Show less", key=f"less_{category.lower()}_{key_prefix}"):
-                        st.session_state[show_more_key] = False
-                        st.rerun()
-                else:
-                    # Count actual config options (excluding summaries)
-                    config_count = len([item for item in value if not str(item).strip().startswith("[Summary:")])
-                    if st.button(f"+{config_count - 5}", key=f"more_{category.lower()}_{key_prefix}"):
-                        st.session_state[show_more_key] = True
-                        st.rerun()
-
-def display_server_details(row, key_prefix):
-    """Display server details using specification matrix layout"""
-    server_type = row.get('Server Type', 'Unknown')
-    
-    # Display basic information header
-    st.markdown(f"""
-    <div style='border: 2px solid #ddd; padding: 15px; border-radius: 5px; margin-bottom: 20px; background-color: #f9f9f9;'>
-        <div style='font-size: 18px; font-weight: bold; margin-bottom: 10px;'>Product: {format_product_name_for_display(row)}</div>
-        <div style='font-size: 14px;'><strong>Company:</strong> {row['Company']}</div>
-        <div style='font-size: 14px;'><strong>Server Type:</strong> {server_type}</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Define specification categories
-    categories = [
-        ('CPU', row.get('CPU', 'N/A')),
-        ('GPU', row.get('GPU', 'N/A')),
-        ('Memory', row.get('Memory', 'N/A')),
-        ('Storage Drive Type', row.get('Storage Drive Type', 'N/A')),
-        ('Max Configuration', row.get('Max Drive Configuration', 'N/A'))
-    ]
-    
-    # Create specification matrix
-    st.markdown("""
-    <style>
-    .spec-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-    .spec-table th, .spec-table td {
-        border: 1px solid #ddd;
-        padding: 12px;
-        text-align: left;
-        vertical-align: top;
-    }
-    .spec-table th {
-        background-color: #f2f2f2;
-        font-weight: bold;
-        width: 20%;
-    }
-    .spec-table td {
-        width: 80%;
-    }
-    .spec-table tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Build table HTML
-    table_html = "<table class='spec-table'>"
-    
-    for category, value in categories:
-        table_html += f"""
-        <tr>
-            <th>{category}</th>
-            <td>{display_list_with_show_more_compact(value, f"{category.lower()}_{key_prefix}")}</td>
-        </tr>
-        """
-    
-    table_html += "</table>"
-    
-    st.markdown(table_html, unsafe_allow_html=True)
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            st.markdown(f"**{category}**")
+        with col2:
+            display_list_with_show_more(value, f"{category.lower()}_{key_prefix}")
+        st.markdown("---")
 
 def format_supermicro_product_name(product_name):
     """Format Supermicro product names from arrays to hyphenated model numbers"""
