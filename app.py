@@ -788,23 +788,6 @@ def main():
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
-    
-    # Footer
-    st.markdown("---")
-    st.markdown(f"**👤 Logged in as:** {st.session_state['username']}")
-    st.markdown("**💡 Tip:** Use the filters in the sidebar to narrow down the catalog, then switch to the Comparison tab to compare specific models.")
-    st.markdown("**📊 Data Source:** companies_data.db - Last updated: Database file timestamp")
-    
-    # Credentials info (in a collapsible section)
-    with st.expander("🔑 Login Credentials"):
-        st.markdown("""
-        **Default Login Credentials:**
-        - Username: `admin` | Password: `admin123`
-        - Username: `procurement` | Password: `procurement123`
-        - Username: `dell` | Password: `dell123`
-        
-        **Note:** These are default credentials. In production, use a proper authentication system with secure password storage.
-        """)
 
 if __name__ == "__main__":
     main()
