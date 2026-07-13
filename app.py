@@ -3,6 +3,7 @@ import pandas as pd
 import sqlite3
 import json
 import hashlib
+import re
 from typing import List, Dict, Any
 
 # Database configuration
@@ -51,6 +52,12 @@ st.markdown("""
     li {
         margin-bottom: 8px;
         padding-left: 8px;
+    }
+    /* Full-width horizontal separators between comparison rows */
+    hr {
+        border: none;
+        border-top: 2px solid #E0E0E0;
+        margin: 0.5rem 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -271,6 +278,50 @@ def display_server_details_compact(row, key_prefix):
         st.markdown(f"**{category}**")
         display_list_with_show_more_compact(value, f"{category.lower()}_{key_prefix}")
         st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+
+def display_comparison_matrix(vendors, key_prefix):
+    """Display server specs as a row-aligned comparison matrix.
+    
+    vendors: list of dicts with keys: company, product, row, color, found
+    key_prefix: base string used to generate unique Show More keys
+    """
+    categories = [
+        ('CPU', 'CPU'),
+        ('GPU', 'GPU'),
+        ('Memory', 'Memory'),
+        ('Storage Drive Type', 'Storage Drive Type'),
+        ('Max Configuration', 'Max Drive Configuration'),
+    ]
+    
+    # Header row
+    header_cols = st.columns([1] + [3] * len(vendors))
+    header_cols[0].markdown("**Category**")
+    for i, vendor in enumerate(vendors):
+        with header_cols[i + 1]:
+            color = vendor.get('color', '#1f77b4')
+            server_type = vendor.get('server_type', '')
+            server_type_html = f"<div style='font-size: 12px; color: #666; margin-top: 2px;'>{server_type}</div>" if server_type else ""
+            st.markdown(
+                f"<div style='font-size: 16px; font-weight: bold; color: {color};'>{vendor['company']}</div>"
+                f"<div style='font-size: 14px; font-weight: bold;'>{vendor['product']}</div>"
+                f"{server_type_html}",
+                unsafe_allow_html=True
+            )
+    st.markdown("---")
+    
+    # Category rows
+    for j, (label, col_name) in enumerate(categories):
+        cols = st.columns([1] + [3] * len(vendors))
+        cols[0].markdown(f"**{label}**")
+        for i, vendor in enumerate(vendors):
+            with cols[i + 1]:
+                if vendor.get('found', True) and vendor.get('row') is not None:
+                    value = vendor['row'].get(col_name, 'N/A')
+                    cell_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"{key_prefix}_{i}_{j}")
+                    display_list_with_show_more_compact(value, cell_key)
+                else:
+                    st.markdown("*No comparable system mapped*")
+        st.markdown("---")
 
 def format_supermicro_product_name(product_name):
     """Format Supermicro product names from arrays to hyphenated model numbers"""
@@ -599,26 +650,25 @@ def main():
                 ].iloc[0]
                 comparison_data.append(server_data)
             
-            # Create comparison table
-            comparison_df = pd.DataFrame(comparison_data)
+            # Build vendor list and display as a shared-row comparison matrix
+            company_colors = {'Dell': '#0076CE', 'Lenovo': '#E2231A', 'Supermicro': '#28A745'}
+            vendors = []
+            for idx, server_data in enumerate(comparison_data):
+                company = server_data['Company']
+                product = format_product_name_for_display(server_data)
+                server_type = server_data.get('Server Type', 'Unknown')
+                color = company_colors.get(company, '#1f77b4')
+                vendors.append({
+                    'company': company,
+                    'product': product,
+                    'server_type': server_type,
+                    'row': server_data,
+                    'color': color,
+                    'found': True
+                })
             
-            # Display comparison
-            st.markdown("### Comparison Table")
-            
-            # Define columns to compare
-            compare_columns = ['Company', 'Product Name', 'Server Type', 'CPU', 'GPU', 'Memory', 
-                            'Storage Drive Type', 'Max Drive Configuration']
-            
-            # Create comparison display
-            for col in compare_columns:
-                if col in comparison_df.columns:
-                    with st.container():
-                        st.markdown(f"**{col.replace('_', ' ')}**")
-                        cols = st.columns(len(selected_servers))
-                        for idx, server_data in enumerate(comparison_data):
-                            with cols[idx]:
-                                display_list_with_show_more(server_data.get(col, 'N/A'), f"comp_{col}_{idx}")
-                        st.markdown("---")
+            matrix_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"selected_{'_'.join(selected_servers)}")
+            display_comparison_matrix(vendors, matrix_key)
     
     # Tab 2: Dell Mapped Comparisons
     with tab2:
@@ -727,67 +777,14 @@ def main():
                         if len(supermicro_data) > 0:
                             supermicro_row = supermicro_data.iloc[0]
                     
-                    # Create 3-column comparison with visual dividers using markdown
-                    col_dell, col_lenovo, col_supermicro = st.columns([1, 1, 1])
-                    
-                    # Dell column
-                    with col_dell:
-                        st.markdown(f"""
-                        <div style='border-right: 2px solid #E0E0E0; padding-right: 15px;'>
-                            <div style='border-left: 4px solid #0076CE; padding-left: 10px; margin-bottom: 15px;'>
-                                <div style='font-size: 16px; font-weight: bold; color: #0076CE; margin-bottom: 5px;'>Dell</div>
-                                <div style='font-size: 14px; font-weight: bold;'>{selected_dell_product}</div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        st.markdown("---")
-                        display_server_details_compact(dell_server_data, "dell_compact")
-                    
-                    # Lenovo column
-                    with col_lenovo:
-                        if lenovo_row is not None:
-                            st.markdown(f"""
-                            <div style='border-right: 2px solid #E0E0E0; padding-right: 15px;'>
-                                <div style='border-left: 4px solid #E2231A; padding-left: 10px; margin-bottom: 15px;'>
-                                    <div style='font-size: 16px; font-weight: bold; color: #E2231A; margin-bottom: 5px;'>Lenovo</div>
-                                    <div style='font-size: 14px; font-weight: bold;'>{lenovo_server}</div>
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            st.markdown("---")
-                            display_server_details_compact(lenovo_row, "lenovo_compact")
-                        else:
-                            st.markdown(f"""
-                            <div style='border-right: 2px solid #E0E0E0; padding-right: 15px;'>
-                                <div style='border-left: 4px solid #E2231A; padding-left: 10px; margin-bottom: 15px;'>
-                                    <div style='font-size: 16px; font-weight: bold; color: #E2231A; margin-bottom: 5px;'>Lenovo</div>
-                                    <div style='font-size: 12px; color: #666;'>No comparable system has been mapped</div>
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                    
-                    # Supermicro column
-                    with col_supermicro:
-                        if supermicro_row is not None:
-                            st.markdown(f"""
-                            <div style='padding-left: 10px;'>
-                                <div style='border-left: 4px solid #28A745; padding-left: 10px; margin-bottom: 15px;'>
-                                    <div style='font-size: 16px; font-weight: bold; color: #28A745; margin-bottom: 5px;'>Supermicro</div>
-                                    <div style='font-size: 14px; font-weight: bold;'>{supermicro_server}</div>
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            st.markdown("---")
-                            display_server_details_compact(supermicro_row, "supermicro_compact")
-                        else:
-                            st.markdown(f"""
-                            <div style='padding-left: 10px;'>
-                                <div style='border-left: 4px solid #28A745; padding-left: 10px; margin-bottom: 15px;'>
-                                    <div style='font-size: 16px; font-weight: bold; color: #28A745; margin-bottom: 5px;'>Supermicro</div>
-                                    <div style='font-size: 12px; color: #666;'>No comparable system has been mapped</div>
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
+                    # Build vendor list and display as a shared-row comparison matrix
+                    vendors = [
+                        {'company': 'Dell', 'product': selected_dell_product, 'server_type': dell_server_data.get('Server Type', 'Unknown'), 'row': dell_server_data, 'color': '#0076CE', 'found': True},
+                        {'company': 'Lenovo', 'product': lenovo_server if pd.notna(lenovo_server) else 'N/A', 'server_type': lenovo_row.get('Server Type', 'Unknown') if lenovo_row is not None else 'N/A', 'row': lenovo_row, 'color': '#E2231A', 'found': lenovo_row is not None},
+                        {'company': 'Supermicro', 'product': supermicro_server if pd.notna(supermicro_server) else 'N/A', 'server_type': supermicro_row.get('Server Type', 'Unknown') if supermicro_row is not None else 'N/A', 'row': supermicro_row, 'color': '#28A745', 'found': supermicro_row is not None},
+                    ]
+                    matrix_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"mapped_{selected_dell_product}")
+                    display_comparison_matrix(vendors, matrix_key)
 
 if __name__ == "__main__":
     main()
