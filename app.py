@@ -4,10 +4,11 @@ import sqlite3
 import json
 import hashlib
 import re
+import os
 from typing import List, Dict, Any
 
 # Database configuration
-DB_FILE = 'companies_data.db'
+DB_FILE = os.path.join(os.path.dirname(__file__), 'companies_data.db')
 
 # Page configuration
 st.set_page_config(
@@ -380,7 +381,9 @@ def get_company_from_table(table_name: str) -> str:
 def get_server_type_from_table(table_name: str) -> str:
     """Extract server type from table name"""
     # Remove the company prefix
-    if 'lenovo_configurations_' in table_name:
+    if 'lenovo_data_' in table_name:
+        return table_name.replace('lenovo_data_', '').replace('_', ' ').title()
+    elif 'lenovo_configurations_' in table_name:
         return table_name.replace('lenovo_configurations_', '').replace('_', ' ').title()
     elif 'supermicro_configurations_final_' in table_name:
         return table_name.replace('supermicro_configurations_final_', '').replace('_', ' ').title()
