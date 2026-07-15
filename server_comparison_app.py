@@ -97,7 +97,9 @@ def get_company_from_table(table_name: str) -> str:
 def get_server_type_from_table(table_name: str) -> str:
     """Extract server type from table name"""
     # Remove the company prefix
-    if 'lenovo_configurations_' in table_name:
+    if 'lenovo_data_' in table_name:
+        return table_name.replace('lenovo_data_', '').replace('_', ' ').title()
+    elif 'lenovo_configurations_' in table_name:
         return table_name.replace('lenovo_configurations_', '').replace('_', ' ').title()
     elif 'supermicro_configurations_final_' in table_name:
         return table_name.replace('supermicro_configurations_final_', '').replace('_', ' ').title()
