@@ -78,10 +78,18 @@ def format_display_value(value):
     if value is None:
         return "N/A"
     if isinstance(value, list):
-        if len(value) == 1:
-            return value[0]
-        return "• " + "\n• ".join(str(item) for item in value)
-    return str(value)
+        # Remove existing bullet points to avoid double bullets
+        clean_items = []
+        for item in value:
+            item_str = str(item).replace('•', '').replace('*', '').strip()
+            clean_items.append(item_str)
+        # Always format as HTML list for consistent styling, even with single items
+        list_items = [f"<li>{str(item)}</li>" for item in clean_items]
+        return f"<ul>{''.join(list_items)}</ul>"
+    # Convert single string to list for consistent formatting
+    clean_value = str(value).replace('•', '').replace('*', '').strip()
+    list_items = [f"<li>{clean_value}</li>"]
+    return f"<ul>{''.join(list_items)}</ul>"
 
 def get_company_from_table(table_name: str) -> str:
     """Extract company name from table name"""

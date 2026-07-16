@@ -96,10 +96,18 @@ def format_display_value(value):
     if value is None:
         return "N/A"
     if isinstance(value, list):
+        # Remove existing bullet points to avoid double bullets
+        clean_items = []
+        for item in value:
+            item_str = str(item).replace('•', '').replace('*', '').strip()
+            clean_items.append(item_str)
         # Always format as HTML list for consistent styling, even with single items
-        list_items = [f"<li>{str(item)}</li>" for item in value]
+        list_items = [f"<li>{str(item)}</li>" for item in clean_items]
         return f"<ul>{''.join(list_items)}</ul>"
-    return str(value)
+    # Convert single string to list for consistent formatting
+    clean_value = str(value).replace('•', '').replace('*', '').strip()
+    list_items = [f"<li>{clean_value}</li>"]
+    return f"<ul>{''.join(list_items)}</ul>"
 
 def display_list_with_show_more(value, key_prefix):
     """Display list with show more functionality using proper HTML list styling"""
@@ -107,8 +115,8 @@ def display_list_with_show_more(value, key_prefix):
         st.write("N/A")
         return
     if not isinstance(value, list):
-        st.write(str(value))
-        return
+        # Convert single string to list for consistent formatting
+        value = [str(value)]
     
     # Separate summary lines from configuration options
     summary_lines = []
@@ -116,6 +124,8 @@ def display_list_with_show_more(value, key_prefix):
     
     for item in value:
         item_str = str(item).strip()
+        # Remove existing bullet points to avoid double bullets
+        item_str = item_str.replace('•', '').replace('*', '').strip()
         if item_str.startswith("[Summary:"):
             summary_lines.append(item_str)
         elif item_str.startswith("[Storage]"):
@@ -167,8 +177,8 @@ def display_list_with_show_more_compact(value, key_prefix):
         st.write("N/A")
         return
     if not isinstance(value, list):
-        st.write(str(value))
-        return
+        # Convert single string to list for consistent formatting
+        value = [str(value)]
     
     # Separate summary lines from configuration options
     summary_lines = []
@@ -176,6 +186,8 @@ def display_list_with_show_more_compact(value, key_prefix):
     
     for item in value:
         item_str = str(item).strip()
+        # Remove existing bullet points to avoid double bullets
+        item_str = item_str.replace('•', '').replace('*', '').strip()
         if item_str.startswith("[Summary:"):
             summary_lines.append(item_str)
         elif item_str.startswith("[Storage]"):
