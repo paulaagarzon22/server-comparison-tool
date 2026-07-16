@@ -350,10 +350,21 @@ def display_comparison_matrix(vendors, key_prefix):
             color = vendor.get('color', '#1f77b4')
             server_type = vendor.get('server_type', '')
             server_type_html = f"<div style='font-size: 14px; color: #666; margin-top: 4px; text-align: center;'>{server_type}</div>" if server_type else ""
+            # Add company qualifier if there are multiple competitors from same company
+            company_name = vendor['company']
+            product_name = vendor['product']
+            
+            # Check if there are multiple vendors from the same company
+            company_count = sum(1 for v in vendors if v['company'] == company_name)
+            if company_count > 1:
+                # Add qualifier like "Lenovo 1", "Lenovo 2" etc.
+                company_index = sum(1 for v in vendors[:i] if v['company'] == company_name) + 1
+                company_name = f"{company_name} {company_index}"
+            
             st.markdown(
                 f"<div style='text-align: center;'>"
-                f"<div style='font-size: 20px; font-weight: bold; color: {color}; margin-bottom: 4px;'>{vendor['company']}</div>"
-                f"<div style='font-size: 17px; font-weight: 600; margin-bottom: 2px;'>{vendor['product']}</div>"
+                f"<div style='font-size: 20px; font-weight: bold; color: {color}; margin-bottom: 4px;'>{company_name}</div>"
+                f"<div style='font-size: 17px; font-weight: 600; margin-bottom: 2px;'>{product_name}</div>"
                 f"{server_type_html}"
                 f"</div>",
                 unsafe_allow_html=True
@@ -369,15 +380,9 @@ def display_comparison_matrix(vendors, key_prefix):
                 if vendor.get('found', True) and vendor.get('row') is not None:
                     value = vendor['row'].get(col_name, 'N/A')
                     cell_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"{key_prefix}_{i}_{j}")
-                    # Add right border for all columns except the last one
-                    border_style = "border-right: 3px solid #E0E0E0; padding-right: 20px;" if i < len(vendors) - 1 else "padding-right: 0px;"
-                    st.markdown(f"<div style='{border_style}'>", unsafe_allow_html=True)
                     display_list_with_show_more_compact(value, cell_key)
-                    st.markdown("</div>", unsafe_allow_html=True)
                 else:
-                    # Add right border for all columns except the last one
-                    border_style = "border-right: 3px solid #E0E0E0; padding-right: 20px;" if i < len(vendors) - 1 else "padding-right: 0px;"
-                    st.markdown(f"<div style='{border_style}'>*No comparable system mapped*</div>", unsafe_allow_html=True)
+                    st.markdown("*N/A*")
         st.markdown("---")
 
 def format_supermicro_product_name(product_name):
@@ -812,36 +817,96 @@ def main():
                 else:
                     mapping_row = mapping_info.iloc[0]
                     
-                    # Get competitor data
-                    lenovo_server = mapping_row['Lenovo Server']
-                    supermicro_server = mapping_row['Supermicro Server']
+                    # Get competitor data - handle multiple competitors
+                    lenovo_servers = []
+                    supermicro_servers = []
                     
-                    # Find Lenovo server data
-                    lenovo_row = None
-                    if pd.notna(lenovo_server) and lenovo_server != 'TBD' and lenovo_server != '':
+                    # Collect all Lenovo competitors
+                    for i in range(1, 4):  # Check Lenovo Server, Lenovo Server 2, Lenovo Server 3
+                        col_name = f'Lenovo Server' if i == 1 else f'Lenovo Server {i}'
+                        if col_name in mapping_row.index and pd.notna(mapping_row[col_name]):
+                            lenovo_server = mapping_row[col_name]
+                            if lenovo_server != 'TBD' and lenovo_server != '' and lenovo_server != 'No direct comparable yet':
+                                lenovo_servers.append(lenovo_server)
+                    
+                    # Collect all Supermicro competitors
+                    for i in range(1, 4):  # Check Supermicro Server, Supermicro Server 2, Supermicro Server 3
+                        col_name = f'Supermicro Server' if i == 1 else f'Supermicro Server {i}'
+                        if col_name in mapping_row.index and pd.notna(mapping_row[col_name]):
+                            supermicro_server = mapping_row[col_name]
+                            if supermicro_server != 'TBD' and supermicro_server != '' and supermicro_server != 'No direct comparable yet':
+                                supermicro_servers.append(supermicro_server)
+                    
+                    # Find Lenovo server data for each competitor
+                    lenovo_rows = []
+                    for lenovo_server in lenovo_servers:
                         lenovo_data = master_df[
                             (master_df['Company'] == 'Lenovo') & 
                             (master_df['Product Name'] == lenovo_server)
                         ]
                         if len(lenovo_data) > 0:
-                            lenovo_row = lenovo_data.iloc[0]
+                            lenovo_rows.append(lenovo_data.iloc[0])
+                        else:
+                            # Create placeholder row for products not in catalog
+                            lenovo_rows.append({
+                                'Company': 'Lenovo',
+                                'Product Name': lenovo_server,
+                                'Server Type': 'N/A',
+                                'CPU': 'N/A',
+                                'GPU': 'N/A', 
+                                'Memory': 'N/A',
+                                'Storage Drive Type': 'N/A',
+                                'Max Drive Configuration': 'N/A'
+                            })
                     
-                    # Find Supermicro server data
-                    supermicro_row = None
-                    if pd.notna(supermicro_server) and supermicro_server != 'TBD' and supermicro_server != '':
+                    # Find Supermicro server data for each competitor
+                    supermicro_rows = []
+                    for supermicro_server in supermicro_servers:
                         supermicro_data = master_df[
                             (master_df['Company'] == 'Supermicro') & 
                             (master_df['Product Name'].apply(normalize_supermicro_name) == supermicro_server)
                         ]
                         if len(supermicro_data) > 0:
-                            supermicro_row = supermicro_data.iloc[0]
+                            supermicro_rows.append(supermicro_data.iloc[0])
                     
-                    # Build vendor list and display as a shared-row comparison matrix
+                    # Build vendor list dynamically based on available competitors
                     vendors = [
-                        {'company': 'Dell', 'product': selected_dell_product, 'server_type': dell_server_data.get('Server Type', 'Unknown'), 'row': dell_server_data, 'color': '#0076CE', 'found': True},
-                        {'company': 'Lenovo', 'product': lenovo_server if pd.notna(lenovo_server) else 'N/A', 'server_type': lenovo_row.get('Server Type', 'Unknown') if lenovo_row is not None else 'N/A', 'row': lenovo_row, 'color': '#E2231A', 'found': lenovo_row is not None},
-                        {'company': 'Supermicro', 'product': supermicro_server if pd.notna(supermicro_server) else 'N/A', 'server_type': supermicro_row.get('Server Type', 'Unknown') if supermicro_row is not None else 'N/A', 'row': supermicro_row, 'color': '#28A745', 'found': supermicro_row is not None},
+                        {'company': 'Dell', 'product': selected_dell_product, 'server_type': dell_server_data.get('Server Type', 'Unknown'), 'row': dell_server_data, 'color': '#0076CE', 'found': True}
                     ]
+                    
+                    # Add Lenovo competitors
+                    for i, lenovo_row in enumerate(lenovo_rows):
+                        if isinstance(lenovo_row, dict):
+                            # Placeholder for product not in catalog
+                            vendors.append({
+                                'company': 'Lenovo',
+                                'product': lenovo_row['Product Name'],
+                                'server_type': 'N/A',
+                                'row': lenovo_row,
+                                'color': '#E2231A',
+                                'found': False
+                            })
+                        else:
+                            vendors.append({
+                                'company': 'Lenovo',
+                                'product': format_product_name_for_display(lenovo_row),
+                                'server_type': lenovo_row.get('Server Type', 'Unknown'),
+                                'row': lenovo_row,
+                                'color': '#E2231A',
+                                'found': True
+                            })
+                    
+                    # Add Supermicro competitors if available
+                    for i, supermicro_row in enumerate(supermicro_rows):
+                        vendors.append({
+                            'company': 'Supermicro',
+                            'product': format_product_name_for_display(supermicro_row),
+                            'server_type': supermicro_row.get('Server Type', 'Unknown'),
+                            'row': supermicro_row,
+                            'color': '#28A745',
+                            'found': True
+                        })
+                    
                     matrix_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"mapped_{selected_dell_product}")
                     display_comparison_matrix(vendors, matrix_key)
 
