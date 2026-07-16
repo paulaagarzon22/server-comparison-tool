@@ -332,11 +332,11 @@ def display_server_details_compact(row, key_prefix):
 def display_storage_subcategories(row, key_prefix):
     """Display storage subcategories within a single cell for Supermicro"""
     subcategories = [
-        ('Storage HDD', 'Storage HDD'),
-        ('Storage SAS SSD', 'Storage SAS SSD'),
-        ('Storage SATA SSD', 'Storage SATA SSD'),
-        ('Storage M.2 SSD', 'Storage M.2 SSD'),
-        ('Storage NVMe SSD', 'Storage NVMe SSD'),
+        ('HDD', 'Storage HDD'),
+        ('SAS SSD', 'Storage SAS SSD'),
+        ('SATA SSD', 'Storage SATA SSD'),
+        ('M.2 SSD', 'Storage M.2 SSD'),
+        ('NVMe SSD', 'Storage NVMe SSD'),
     ]
     
     html_content = "<div style='margin: 0; padding: 0;'>"
