@@ -335,13 +335,31 @@ def display_comparison_matrix(vendors, key_prefix):
     vendors: list of dicts with keys: company, product, row, color, found
     key_prefix: base string used to generate unique Show More keys
     """
-    categories = [
-        ('CPU', 'CPU'),
-        ('GPU', 'GPU'),
-        ('Memory', 'Memory'),
-        ('Storage Drive Type', 'Storage Drive Type'),
-        ('Max Configuration', 'Max Drive Configuration'),
-    ]
+    # Check if any vendor is Supermicro (has storage sub-categories)
+    has_supermicro = any(vendor['company'] == 'Supermicro' for vendor in vendors)
+    
+    if has_supermicro:
+        # Use storage sub-categories for Supermicro
+        categories = [
+            ('CPU', 'CPU'),
+            ('GPU', 'GPU'),
+            ('Memory', 'Memory'),
+            ('Storage HDD', 'Storage HDD'),
+            ('Storage SAS SSD', 'Storage SAS SSD'),
+            ('Storage SATA SSD', 'Storage SATA SSD'),
+            ('Storage M.2 SSD', 'Storage M.2 SSD'),
+            ('Storage NVMe SSD', 'Storage NVMe SSD'),
+            ('Max Configuration', 'Max Drive Configuration'),
+        ]
+    else:
+        # Use single storage category for Dell and Lenovo
+        categories = [
+            ('CPU', 'CPU'),
+            ('GPU', 'GPU'),
+            ('Memory', 'Memory'),
+            ('Storage Drive Type', 'Storage Drive Type'),
+            ('Max Configuration', 'Max Drive Configuration'),
+        ]
     
     # Header row with improved styling and better spacing (no Category label)
     header_cols = st.columns([1.0] + [4.0] * len(vendors))
@@ -600,7 +618,8 @@ def main():
     master_df = pd.concat(combined_data, ignore_index=True)
     
     # Parse JSON columns
-    json_columns = ['CPU', 'GPU', 'Memory', 'Storage Drive Type', 'Max Drive Configuration', 'Storage Controller']
+    json_columns = ['CPU', 'GPU', 'Memory', 'Storage Drive Type', 'Max Drive Configuration', 'Storage Controller', 
+                    'Storage HDD', 'Storage SAS SSD', 'Storage SATA SSD', 'Storage M.2 SSD', 'Storage NVMe SSD']
     for col in json_columns:
         if col in master_df.columns:
             master_df[col] = master_df[col].apply(parse_json_column)
