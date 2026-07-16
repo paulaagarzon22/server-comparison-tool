@@ -355,7 +355,8 @@ def display_storage_subcategories(row, key_prefix):
                 html_content += f"<div style='margin-bottom: 8px;'>"
                 html_content += f"<strong style='font-size: 16px; color: #2c3e50;'>{label}:</strong><br/>"
                 
-                # Display first 5 items per subcategory
+                # Create HTML list with same styling as standard bullet points
+                list_items = []
                 for item in value[:5]:
                     item_str = str(item).strip()
                     # Remove prefix if present
@@ -370,7 +371,11 @@ def display_storage_subcategories(row, key_prefix):
                     elif item_str.startswith('E3.S:'):
                         item_str = item_str[5:].strip()
                     
-                    html_content += f"<span style='font-size: 16px;'>• {item_str}</span><br/>"
+                    list_items.append(f"<li>{item_str}</li>")
+                
+                # Use same styling as display_list_with_show_more_compact
+                html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 16px; line-height: 1.6;'>{''.join(list_items)}</ul>"
+                html_content += html_list
                 
                 # Show more button if needed
                 if len(value) > 5:
@@ -382,6 +387,7 @@ def display_storage_subcategories(row, key_prefix):
                     
                     if st.session_state[show_more_key]:
                         # Show all items
+                        more_list_items = []
                         for item in value[5:]:
                             item_str = str(item).strip()
                             if item_str.startswith('HDD:'):
@@ -395,16 +401,15 @@ def display_storage_subcategories(row, key_prefix):
                             elif item_str.startswith('E3.S:'):
                                 item_str = item_str[5:].strip()
                             
-                            html_content += f"<span style='font-size: 16px;'>• {item_str}</span><br/>"
+                            more_list_items.append(f"<li>{item_str}</li>")
                         
-                        st.markdown(html_content, unsafe_allow_html=True)
+                        html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 16px; line-height: 1.6;'>{''.join(list_items + more_list_items)}</ul>"
+                        st.markdown(html_list, unsafe_allow_html=True)
                         if st.button("Show less", key=f"less_{show_more_key}"):
                             st.session_state[show_more_key] = False
                             st.rerun()
                         html_content = ""  # Clear html_content since we already rendered
                     else:
-                        html_content = html_content[:-6]  # Remove last <br/>
-                        html_content += f" <span style='font-size: 16px; color: #666;'>({len(value) - 5} more)</span><br/>"
                         st.markdown(html_content, unsafe_allow_html=True)
                         if st.button(f"Show {len(value) - 5} more", key=f"more_{show_more_key}"):
                             st.session_state[show_more_key] = True
