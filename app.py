@@ -96,9 +96,7 @@ def format_display_value(value):
     if value is None:
         return "N/A"
     if isinstance(value, list):
-        if len(value) == 1:
-            return value[0]
-        # Return as HTML list for proper styling
+        # Always format as HTML list for consistent styling, even with single items
         list_items = [f"<li>{str(item)}</li>" for item in value]
         return f"<ul>{''.join(list_items)}</ul>"
     return str(value)
@@ -135,11 +133,16 @@ def display_list_with_show_more(value, key_prefix):
     # Convert config options to HTML list elements
     list_items = [f"<li>{str(item)}</li>" for item in config_options]
     
+    # Format as HTML list for consistent styling
     if len(config_options) <= 5:
-        # Show all items as a proper HTML list
+        # Show all items
         html_list = f"<ul>{''.join(list_items)}</ul>"
         st.markdown(html_list, unsafe_allow_html=True)
     else:
+        # Show first 5 items with show more functionality
+        html_list = f"<ul>{''.join(list_items[:5])}</ul>"
+        st.markdown(html_list, unsafe_allow_html=True)
+        
         show_more_key = f"show_more_{key_prefix}"
         
         # Initialize session state if not exists
@@ -147,16 +150,13 @@ def display_list_with_show_more(value, key_prefix):
             st.session_state[show_more_key] = False
         
         if st.session_state[show_more_key]:
-            # Show all items as a proper HTML list
+            # Show all items
             html_list = f"<ul>{''.join(list_items)}</ul>"
             st.markdown(html_list, unsafe_allow_html=True)
             if st.button("Show less", key=f"less_{key_prefix}"):
                 st.session_state[show_more_key] = False
                 st.rerun()
         else:
-            # Show first 5 items as a proper HTML list
-            html_list = f"<ul>{''.join(list_items[:5])}</ul>"
-            st.markdown(html_list, unsafe_allow_html=True)
             if st.button(f"Show more ({len(config_options) - 5} more)", key=f"more_{key_prefix}"):
                 st.session_state[show_more_key] = True
                 st.rerun()
@@ -192,6 +192,7 @@ def display_list_with_show_more_compact(value, key_prefix):
     
     # Display configuration options as bullet list
     if config_options:
+        # Always format as HTML list for consistent styling, even with single items
         if len(config_options) <= 3:  # Show fewer items in compact view
             # Show all items as a proper HTML list
             list_items = [f"<li>{str(item)}</li>" for item in config_options]
