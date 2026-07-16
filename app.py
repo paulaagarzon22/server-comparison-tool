@@ -26,9 +26,48 @@ st.markdown("""
         background-color: #2c3e50;
     }
     
-    /* Sidebar text styling - white text */
-    [data-testid="stSidebar"] * {
+    /* Sidebar text styling - white text (excluding select boxes) */
+    [data-testid="stSidebar"] > div > div > div > div {
         color: white !important;
+    }
+    
+    /* Sidebar headers and labels - white text */
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p {
+        color: white !important;
+    }
+    
+    /* Select box - keep text black inside white boxes */
+    [data-testid="stSidebar"] .stSelect {
+        color: black !important;
+    }
+    
+    [data-testid="stSidebar"] .stSelect > div {
+        color: black !important;
+    }
+    
+    [data-testid="stSidebar"] .stSelect > div > div {
+        color: black !important;
+    }
+    
+    [data-testid="stSidebar"] .stSelect > div > div > div {
+        color: black !important;
+    }
+    
+    [data-testid="stSidebar"] .stSelect > div > div > div > div {
+        color: black !important;
+    }
+    
+    [data-testid="stSidebar"] .stSelect > div > div > div > div > div {
+        color: black !important;
+    }
+    
+    /* Select box options - black text */
+    [data-testid="stSidebar"] .stSelect option {
+        color: black !important;
     }
     
     /* Main header styling */
