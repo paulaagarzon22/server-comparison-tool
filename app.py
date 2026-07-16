@@ -31,16 +31,6 @@ st.markdown("""
         color: white !important;
     }
     
-    /* Sticky header for comparison tables */
-    .sticky-header {
-        position: sticky;
-        top: 0;
-        background-color: white;
-        z-index: 100;
-        padding-bottom: 8px;
-        border-bottom: 2px solid #E0E0E0;
-    }
-    
     /* Main header styling */
     .main-header {
         font-size: 2.5rem;
@@ -466,35 +456,36 @@ def display_comparison_matrix(vendors, key_prefix):
     ]
     
     # Header row with improved styling and better spacing (no Category label)
-    st.markdown('<div class="sticky-header">', unsafe_allow_html=True)
-    header_cols = st.columns([1.0] + [4.0] * len(vendors))
-    header_cols[0].empty()  # Empty space instead of "Category" label
-    for i, vendor in enumerate(vendors):
-        with header_cols[i + 1]:
-            color = vendor.get('color', '#1f77b4')
-            server_type = vendor.get('server_type', '')
-            server_type_html = f"<div style='font-size: 18px; color: #666; margin-top: 4px; text-align: center;'>{server_type}</div>" if server_type else ""
-            # Add company qualifier if there are multiple competitors from same company
-            company_name = vendor['company']
-            product_name = vendor['product']
-            
-            # Check if there are multiple vendors from the same company
-            company_count = sum(1 for v in vendors if v['company'] == company_name)
-            if company_count > 1:
-                # Add qualifier like "Lenovo 1", "Lenovo 2" etc.
-                company_index = sum(1 for v in vendors[:i] if v['company'] == company_name) + 1
-                company_name = f"{company_name} {company_index}"
-            
-            st.markdown(
-                f"<div style='text-align: center;'>"
-                f"<div style='font-size: 24px; font-weight: bold; color: {color}; margin-bottom: 4px;'>{company_name}</div>"
-                f"<div style='font-size: 20px; font-weight: 600; margin-bottom: 2px;'>{product_name}</div>"
-                f"{server_type_html}"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown("---")
+    header_container = st.container()
+    with header_container:
+        header_cols = st.columns([1.0] + [4.0] * len(vendors))
+        header_cols[0].empty()  # Empty space instead of "Category" label
+        for i, vendor in enumerate(vendors):
+            with header_cols[i + 1]:
+                color = vendor.get('color', '#1f77b4')
+                server_type = vendor.get('server_type', '')
+                server_type_html = f"<div style='font-size: 14px; color: #666; margin-top: 4px; text-align: center;'>{server_type}</div>" if server_type else ""
+                # Add company qualifier if there are multiple competitors from same company
+                company_name = vendor['company']
+                product_name = vendor['product']
+                
+                # Check if there are multiple vendors from the same company
+                company_count = sum(1 for v in vendors if v['company'] == company_name)
+                if company_count > 1:
+                    # Add qualifier like "Lenovo 1", "Lenovo 2" etc.
+                    company_index = sum(1 for v in vendors[:i] if v['company'] == company_name) + 1
+                    company_name = f"{company_name} {company_index}"
+                
+                st.markdown(
+                    f"<div style='text-align: center;'>"
+                    f"<div style='font-size: 24px; font-weight: bold; color: {color}; margin-bottom: 4px;'>{company_name}</div>"
+                    f"<div style='font-size: 17px; font-weight: 600; margin-bottom: 2px;'>{product_name}</div>"
+                    f"{server_type_html}"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+    
+    st.markdown("---", unsafe_allow_html=True)
     
     # Category rows with improved spacing
     for j, (label, col_name) in enumerate(categories):
