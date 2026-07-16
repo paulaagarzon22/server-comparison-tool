@@ -351,7 +351,7 @@ def display_comparison_matrix(vendors, key_prefix):
             server_type = vendor.get('server_type', '')
             server_type_html = f"<div style='font-size: 14px; color: #666; margin-top: 4px; text-align: center;'>{server_type}</div>" if server_type else ""
             # Add right border for all columns except the last one
-            border_style = "border-right: 2px solid #E0E0E0; padding-right: 15px;" if i < len(vendors) - 1 else "padding-right: 0px;"
+            border_style = "border-right: 3px solid #E0E0E0; padding-right: 20px;" if i < len(vendors) - 1 else "padding-right: 0px;"
             st.markdown(
                 f"<div style='text-align: center; {border_style}'>"
                 f"<div style='font-size: 20px; font-weight: bold; color: {color}; margin-bottom: 4px;'>{vendor['company']}</div>"
@@ -372,13 +372,13 @@ def display_comparison_matrix(vendors, key_prefix):
                     value = vendor['row'].get(col_name, 'N/A')
                     cell_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"{key_prefix}_{i}_{j}")
                     # Add right border for all columns except the last one
-                    border_style = "border-right: 2px solid #E0E0E0; padding-right: 15px;" if i < len(vendors) - 1 else "padding-right: 0px;"
+                    border_style = "border-right: 3px solid #E0E0E0; padding-right: 20px;" if i < len(vendors) - 1 else "padding-right: 0px;"
                     st.markdown(f"<div style='{border_style}'>", unsafe_allow_html=True)
                     display_list_with_show_more_compact(value, cell_key)
                     st.markdown("</div>", unsafe_allow_html=True)
                 else:
                     # Add right border for all columns except the last one
-                    border_style = "border-right: 2px solid #E0E0E0; padding-right: 15px;" if i < len(vendors) - 1 else "padding-right: 0px;"
+                    border_style = "border-right: 3px solid #E0E0E0; padding-right: 20px;" if i < len(vendors) - 1 else "padding-right: 0px;"
                     st.markdown(f"<div style='{border_style}'>*No comparable system mapped*</div>", unsafe_allow_html=True)
         st.markdown("---")
 
