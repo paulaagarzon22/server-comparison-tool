@@ -243,7 +243,7 @@ def display_list_with_show_more_compact(value, key_prefix):
         if len(config_options) <= 3:  # Show fewer items in compact view
             # Show all items as a proper HTML list with increased font size
             list_items = [f"<li>{str(item)}</li>" for item in config_options]
-            html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.5;'>{''.join(list_items)}</ul>"
+            html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 16px; line-height: 1.6;'>{''.join(list_items)}</ul>"
             st.markdown(html_list, unsafe_allow_html=True)
         else:
             show_more_key = f"show_more_{key_prefix}"
@@ -255,7 +255,7 @@ def display_list_with_show_more_compact(value, key_prefix):
             if st.session_state[show_more_key]:
                 # Show all items as a proper HTML list with increased font size
                 list_items = [f"<li>{str(item)}</li>" for item in config_options]
-                html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.5;'>{''.join(list_items)}</ul>"
+                html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 16px; line-height: 1.6;'>{''.join(list_items)}</ul>"
                 st.markdown(html_list, unsafe_allow_html=True)
                 if st.button("Show less", key=f"less_{key_prefix}"):
                     st.session_state[show_more_key] = False
@@ -263,7 +263,7 @@ def display_list_with_show_more_compact(value, key_prefix):
             else:
                 # Show first 3 items as a proper HTML list with increased font size
                 list_items = [f"<li>{str(item)}</li>" for item in config_options[:3]]
-                html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.5;'>{''.join(list_items)}</ul>"
+                html_list = f"<ul style='margin: 0; padding-left: 20px; font-size: 16px; line-height: 1.6;'>{''.join(list_items)}</ul>"
                 st.markdown(html_list, unsafe_allow_html=True)
                 if st.button(f"Show {len(config_options) - 3} more", key=f"more_{key_prefix}"):
                     st.session_state[show_more_key] = True
@@ -342,18 +342,18 @@ def display_comparison_matrix(vendors, key_prefix):
         ('Max Configuration', 'Max Drive Configuration'),
     ]
     
-    # Header row with improved styling and better spacing
-    header_cols = st.columns([1.2] + [3.5] * len(vendors))
-    header_cols[0].markdown("**Category**")
+    # Header row with improved styling and better spacing (no Category label)
+    header_cols = st.columns([1.0] + [4.0] * len(vendors))
+    header_cols[0].empty()  # Empty space instead of "Category" label
     for i, vendor in enumerate(vendors):
         with header_cols[i + 1]:
             color = vendor.get('color', '#1f77b4')
             server_type = vendor.get('server_type', '')
-            server_type_html = f"<div style='font-size: 13px; color: #666; margin-top: 4px; text-align: center;'>{server_type}</div>" if server_type else ""
+            server_type_html = f"<div style='font-size: 14px; color: #666; margin-top: 4px; text-align: center;'>{server_type}</div>" if server_type else ""
             st.markdown(
                 f"<div style='text-align: center;'>"
-                f"<div style='font-size: 18px; font-weight: bold; color: {color}; margin-bottom: 4px;'>{vendor['company']}</div>"
-                f"<div style='font-size: 15px; font-weight: 600; margin-bottom: 2px;'>{vendor['product']}</div>"
+                f"<div style='font-size: 20px; font-weight: bold; color: {color}; margin-bottom: 4px;'>{vendor['company']}</div>"
+                f"<div style='font-size: 17px; font-weight: 600; margin-bottom: 2px;'>{vendor['product']}</div>"
                 f"{server_type_html}"
                 f"</div>",
                 unsafe_allow_html=True
@@ -362,7 +362,7 @@ def display_comparison_matrix(vendors, key_prefix):
     
     # Category rows with improved spacing
     for j, (label, col_name) in enumerate(categories):
-        cols = st.columns([1.2] + [3.5] * len(vendors))
+        cols = st.columns([1.0] + [4.0] * len(vendors))
         cols[0].markdown(f"**{label}**")
         for i, vendor in enumerate(vendors):
             with cols[i + 1]:
