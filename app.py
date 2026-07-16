@@ -13,7 +13,7 @@ DB_FILE = os.path.join(os.path.dirname(__file__), 'companies_data.db')
 # Page configuration
 st.set_page_config(
     page_title="Server Configuration Comparison Tool",
-    page_icon="🖥️",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -27,6 +27,7 @@ st.markdown("""
         color: #1f77b4;
         text-align: center;
         margin-bottom: 2rem;
+        margin-top: 1rem;
     }
     .sub-header {
         font-size: 1.5rem;
@@ -544,7 +545,7 @@ def main():
     # Main header with logout button
     col1, col2, col3 = st.columns([6, 2, 2])
     with col1:
-        st.markdown('<h1 class="main-header">🖥️ Server Configuration Comparison Tool</h1>', unsafe_allow_html=True)
+        st.markdown('<h1 class="main-header">Server Configuration Comparison Tool</h1>', unsafe_allow_html=True)
     with col3:
         if st.button("🚪 Logout"):
             logout()
@@ -605,7 +606,7 @@ def main():
             master_df[col] = master_df[col].apply(parse_json_column)
     
     # Sidebar for filtering
-    st.sidebar.header("🔍 Filters")
+    st.sidebar.header("Filters")
     
     # Company filter
     companies = ['All'] + sorted(master_df['Company'].unique().tolist())
@@ -623,14 +624,14 @@ def main():
         filtered_df = filtered_df[filtered_df['Server Type'] == selected_server_type]
     
     # Main content area with tabs
-    tab1, tab2, tab3 = st.tabs(["📊 Catalog", "🔗 Dell Mapped Comparisons", "⚖️ User Selected Comparisons"])
+    tab1, tab2, tab3 = st.tabs(["Catalog", "Dell Mapped Comparisons", "User Selected Comparisons"])
     
     # Tab 1: Catalog View
     with tab1:
         st.markdown('<h2 class="sub-header">Server Catalog</h2>', unsafe_allow_html=True)
         
         # Add search bar
-        search_term = st.text_input("🔍 Search servers", "", placeholder="Search by product name, company, server type, CPU, GPU, etc.")
+        search_term = st.text_input("Search servers", "", placeholder="Search by product name, company, server type, CPU, GPU, etc.")
         
         # Apply search filter
         if search_term:
