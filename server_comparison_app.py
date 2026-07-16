@@ -78,16 +78,30 @@ def format_display_value(value):
     if value is None:
         return "N/A"
     if isinstance(value, list):
-        # Remove existing bullet points to avoid double bullets
+        # Remove bullet points only at the beginning to avoid breaking legitimate text
         clean_items = []
         for item in value:
-            item_str = str(item).replace('•', '').replace('*', '').strip()
+            item_str = str(item).strip()
+            if item_str.startswith('•'):
+                item_str = item_str[1:].strip()
+            elif item_str.startswith('*'):
+                item_str = item_str[1:].strip()
+            # Check if the item is now just "A" or empty after bullet removal
+            if item_str == 'A' or item_str == 'a' or item_str == '':
+                continue  # Skip empty items or standalone "A"
             clean_items.append(item_str)
         # Always format as HTML list for consistent styling, even with single items
         list_items = [f"<li>{str(item)}</li>" for item in clean_items]
         return f"<ul>{''.join(list_items)}</ul>"
     # Convert single string to list for consistent formatting
-    clean_value = str(value).replace('•', '').replace('*', '').strip()
+    clean_value = str(value).strip()
+    if clean_value.startswith('•'):
+        clean_value = clean_value[1:].strip()
+    elif clean_value.startswith('*'):
+        clean_value = clean_value[1:].strip()
+    # Check if the item is now just "A" or empty after bullet removal
+    if clean_value == 'A' or clean_value == 'a' or clean_value == '':
+        clean_value = "N/A"
     list_items = [f"<li>{clean_value}</li>"]
     return f"<ul>{''.join(list_items)}</ul>"
 
