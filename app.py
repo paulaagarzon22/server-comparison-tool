@@ -353,10 +353,10 @@ def display_storage_subcategories(row, key_prefix):
             
             if value and len(value) > 0:
                 html_content += f"<div style='margin-bottom: 8px;'>"
-                html_content += f"<strong style='font-size: 14px; color: #2c3e50;'>{label}:</strong><br/>"
+                html_content += f"<strong style='font-size: 16px; color: #2c3e50;'>{label}:</strong><br/>"
                 
-                # Display up to 3 items per subcategory
-                for item in value[:3]:
+                # Display first 5 items per subcategory
+                for item in value[:5]:
                     item_str = str(item).strip()
                     # Remove prefix if present
                     if item_str.startswith('HDD:'):
@@ -370,17 +370,56 @@ def display_storage_subcategories(row, key_prefix):
                     elif item_str.startswith('E3.S:'):
                         item_str = item_str[5:].strip()
                     
-                    html_content += f"<span style='font-size: 13px;'>• {item_str}</span><br/>"
+                    html_content += f"<span style='font-size: 16px;'>• {item_str}</span><br/>"
                 
-                # Show more indicator if needed
-                if len(value) > 3:
-                    html_content = html_content[:-6]  # Remove last <br/>
-                    html_content += f" <span style='font-size: 12px; color: #666;'>({len(value) - 3} more)</span><br/>"
+                # Show more button if needed
+                if len(value) > 5:
+                    show_more_key = f"storage_{col_name}_{key_prefix}"
+                    
+                    # Initialize session state if not exists
+                    if show_more_key not in st.session_state:
+                        st.session_state[show_more_key] = False
+                    
+                    if st.session_state[show_more_key]:
+                        # Show all items
+                        for item in value[5:]:
+                            item_str = str(item).strip()
+                            if item_str.startswith('HDD:'):
+                                item_str = item_str[4:].strip()
+                            elif item_str.startswith('SSD:'):
+                                item_str = item_str[4:].strip()
+                            elif item_str.startswith('M.2:'):
+                                item_str = item_str[4:].strip()
+                            elif item_str.startswith('NVMe:'):
+                                item_str = item_str[5:].strip()
+                            elif item_str.startswith('E3.S:'):
+                                item_str = item_str[5:].strip()
+                            
+                            html_content += f"<span style='font-size: 16px;'>• {item_str}</span><br/>"
+                        
+                        st.markdown(html_content, unsafe_allow_html=True)
+                        if st.button("Show less", key=f"less_{show_more_key}"):
+                            st.session_state[show_more_key] = False
+                            st.rerun()
+                        html_content = ""  # Clear html_content since we already rendered
+                    else:
+                        html_content = html_content[:-6]  # Remove last <br/>
+                        html_content += f" <span style='font-size: 16px; color: #666;'>({len(value) - 5} more)</span><br/>"
+                        st.markdown(html_content, unsafe_allow_html=True)
+                        if st.button(f"Show {len(value) - 5} more", key=f"more_{show_more_key}"):
+                            st.session_state[show_more_key] = True
+                            st.rerun()
+                        html_content = ""  # Clear html_content since we already rendered
+                else:
+                    st.markdown(html_content, unsafe_allow_html=True)
+                    html_content = ""  # Clear html_content since we already rendered
                 
-                html_content += "</div>"
+                if html_content:
+                    html_content += "</div>"
     
-    html_content += "</div>"
-    st.markdown(html_content, unsafe_allow_html=True)
+    if html_content:
+        html_content += "</div>"
+        st.markdown(html_content, unsafe_allow_html=True)
 
 def display_comparison_matrix(vendors, key_prefix):
     """Display server specs as a row-aligned comparison matrix.
