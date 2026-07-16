@@ -329,6 +329,59 @@ def display_server_details_compact(row, key_prefix):
         display_list_with_show_more_compact(value, f"{category.lower()}_{key_prefix}")
         st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
+def display_storage_subcategories(row, key_prefix):
+    """Display storage subcategories within a single cell for Supermicro"""
+    subcategories = [
+        ('Storage HDD', 'Storage HDD'),
+        ('Storage SAS SSD', 'Storage SAS SSD'),
+        ('Storage SATA SSD', 'Storage SATA SSD'),
+        ('Storage M.2 SSD', 'Storage M.2 SSD'),
+        ('Storage NVMe SSD', 'Storage NVMe SSD'),
+    ]
+    
+    html_content = "<div style='margin: 0; padding: 0;'>"
+    
+    for label, col_name in subcategories:
+        value = row.get(col_name, None)
+        if value and value != 'N/A':
+            # Parse the value if it's a string representation of a list
+            if isinstance(value, str):
+                try:
+                    value = json.loads(value)
+                except:
+                    value = [value]
+            
+            if value and len(value) > 0:
+                html_content += f"<div style='margin-bottom: 8px;'>"
+                html_content += f"<strong style='font-size: 14px; color: #2c3e50;'>{label}:</strong><br/>"
+                
+                # Display up to 3 items per subcategory
+                for item in value[:3]:
+                    item_str = str(item).strip()
+                    # Remove prefix if present
+                    if item_str.startswith('HDD:'):
+                        item_str = item_str[4:].strip()
+                    elif item_str.startswith('SSD:'):
+                        item_str = item_str[4:].strip()
+                    elif item_str.startswith('M.2:'):
+                        item_str = item_str[4:].strip()
+                    elif item_str.startswith('NVMe:'):
+                        item_str = item_str[5:].strip()
+                    elif item_str.startswith('E3.S:'):
+                        item_str = item_str[5:].strip()
+                    
+                    html_content += f"<span style='font-size: 13px;'>• {item_str}</span><br/>"
+                
+                # Show more indicator if needed
+                if len(value) > 3:
+                    html_content = html_content[:-6]  # Remove last <br/>
+                    html_content += f" <span style='font-size: 12px; color: #666;'>({len(value) - 3} more)</span><br/>"
+                
+                html_content += "</div>"
+    
+    html_content += "</div>"
+    st.markdown(html_content, unsafe_allow_html=True)
+
 def display_comparison_matrix(vendors, key_prefix):
     """Display server specs as a row-aligned comparison matrix.
     
@@ -338,28 +391,14 @@ def display_comparison_matrix(vendors, key_prefix):
     # Check if any vendor is Supermicro (has storage sub-categories)
     has_supermicro = any(vendor['company'] == 'Supermicro' for vendor in vendors)
     
-    if has_supermicro:
-        # Use storage sub-categories for Supermicro
-        categories = [
-            ('CPU', 'CPU'),
-            ('GPU', 'GPU'),
-            ('Memory', 'Memory'),
-            ('Storage HDD', 'Storage HDD'),
-            ('Storage SAS SSD', 'Storage SAS SSD'),
-            ('Storage SATA SSD', 'Storage SATA SSD'),
-            ('Storage M.2 SSD', 'Storage M.2 SSD'),
-            ('Storage NVMe SSD', 'Storage NVMe SSD'),
-            ('Max Configuration', 'Max Drive Configuration'),
-        ]
-    else:
-        # Use single storage category for Dell and Lenovo
-        categories = [
-            ('CPU', 'CPU'),
-            ('GPU', 'GPU'),
-            ('Memory', 'Memory'),
-            ('Storage Drive Type', 'Storage Drive Type'),
-            ('Max Configuration', 'Max Drive Configuration'),
-        ]
+    # Use single storage category for all, with special formatting for Supermicro
+    categories = [
+        ('CPU', 'CPU'),
+        ('GPU', 'GPU'),
+        ('Memory', 'Memory'),
+        ('Drive Type', 'Storage Drive Type'),
+        ('Max Configuration', 'Max Drive Configuration'),
+    ]
     
     # Header row with improved styling and better spacing (no Category label)
     header_cols = st.columns([1.0] + [4.0] * len(vendors))
@@ -397,9 +436,14 @@ def display_comparison_matrix(vendors, key_prefix):
         for i, vendor in enumerate(vendors):
             with cols[i + 1]:
                 if vendor.get('found', True) and vendor.get('row') is not None:
-                    value = vendor['row'].get(col_name, 'N/A')
-                    cell_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"{key_prefix}_{i}_{j}")
-                    display_list_with_show_more_compact(value, cell_key)
+                    # Special handling for Drive Type with Supermicro subcategories
+                    if label == 'Drive Type' and vendor['company'] == 'Supermicro':
+                        cell_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"{key_prefix}_{i}_{j}")
+                        display_storage_subcategories(vendor['row'], cell_key)
+                    else:
+                        value = vendor['row'].get(col_name, 'N/A')
+                        cell_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"{key_prefix}_{i}_{j}")
+                        display_list_with_show_more_compact(value, cell_key)
                 else:
                     st.markdown("*N/A*")
         st.markdown("---")
