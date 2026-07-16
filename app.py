@@ -350,8 +350,10 @@ def display_comparison_matrix(vendors, key_prefix):
             color = vendor.get('color', '#1f77b4')
             server_type = vendor.get('server_type', '')
             server_type_html = f"<div style='font-size: 14px; color: #666; margin-top: 4px; text-align: center;'>{server_type}</div>" if server_type else ""
+            # Add right border for all columns except the last one
+            border_style = "border-right: 2px solid #E0E0E0; padding-right: 15px;" if i < len(vendors) - 1 else "padding-right: 0px;"
             st.markdown(
-                f"<div style='text-align: center;'>"
+                f"<div style='text-align: center; {border_style}'>"
                 f"<div style='font-size: 20px; font-weight: bold; color: {color}; margin-bottom: 4px;'>{vendor['company']}</div>"
                 f"<div style='font-size: 17px; font-weight: 600; margin-bottom: 2px;'>{vendor['product']}</div>"
                 f"{server_type_html}"
@@ -360,7 +362,7 @@ def display_comparison_matrix(vendors, key_prefix):
             )
     st.markdown("---")
     
-    # Category rows with improved spacing
+    # Category rows with improved spacing and vertical dividers
     for j, (label, col_name) in enumerate(categories):
         cols = st.columns([1.0] + [4.0] * len(vendors))
         cols[0].markdown(f"**{label}**")
@@ -369,9 +371,15 @@ def display_comparison_matrix(vendors, key_prefix):
                 if vendor.get('found', True) and vendor.get('row') is not None:
                     value = vendor['row'].get(col_name, 'N/A')
                     cell_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"{key_prefix}_{i}_{j}")
+                    # Add right border for all columns except the last one
+                    border_style = "border-right: 2px solid #E0E0E0; padding-right: 15px;" if i < len(vendors) - 1 else "padding-right: 0px;"
+                    st.markdown(f"<div style='{border_style}'>", unsafe_allow_html=True)
                     display_list_with_show_more_compact(value, cell_key)
+                    st.markdown("</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown("*No comparable system mapped*")
+                    # Add right border for all columns except the last one
+                    border_style = "border-right: 2px solid #E0E0E0; padding-right: 15px;" if i < len(vendors) - 1 else "padding-right: 0px;"
+                    st.markdown(f"<div style='{border_style}'>*No comparable system mapped*</div>", unsafe_allow_html=True)
         st.markdown("---")
 
 def format_supermicro_product_name(product_name):
