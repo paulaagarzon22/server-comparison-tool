@@ -21,6 +21,12 @@ st.set_page_config(
 # Custom CSS for better styling
 st.markdown("""
 <style>
+    /* Sidebar styling - darker blue-gray */
+    [data-testid="stSidebar"] {
+        background-color: #2c3e50;
+    }
+    
+    /* Main header styling */
     .main-header {
         font-size: 2.5rem;
         font-weight: bold;
