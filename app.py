@@ -26,6 +26,11 @@ st.markdown("""
         background-color: #2c3e50;
     }
     
+    /* Sidebar text styling - white text */
+    [data-testid="stSidebar"] * {
+        color: white !important;
+    }
+    
     /* Main header styling */
     .main-header {
         font-size: 2.5rem;
