@@ -533,8 +533,8 @@ def display_comparison_matrix(vendors, key_prefix):
         for i, vendor in enumerate(vendors):
             with cols[i + 1]:
                 if vendor.get('found', True) and vendor.get('row') is not None:
-                    # Special handling for Drive Type with Supermicro subcategories
-                    if label == 'Drive Type' and vendor['company'] == 'Supermicro':
+                    # Special handling for Drive Type with Supermicro and Lenovo subcategories
+                    if label == 'Drive Type' and (vendor['company'] == 'Supermicro' or vendor['company'] == 'Lenovo'):
                         cell_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"{key_prefix}_{i}_{j}")
                         display_storage_subcategories(vendor['row'], cell_key)
                     else:
