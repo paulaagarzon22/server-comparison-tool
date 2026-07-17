@@ -409,17 +409,31 @@ def display_storage_subcategories(row, key_prefix):
                 list_items = []
                 for item in value[:5]:
                     item_str = str(item).strip()
-                    # Remove prefix if present
+                    # Remove prefix if present (handle both Supermicro and Lenovo formats)
                     if item_str.startswith('HDD:'):
                         item_str = item_str[4:].strip()
-                    elif item_str.startswith('SSD:'):
-                        item_str = item_str[4:].strip()
+                    elif item_str.startswith('SAS SSD:'):
+                        item_str = item_str[8:].strip()
+                    elif item_str.startswith('SATA SSD:'):
+                        item_str = item_str[9:].strip()
+                    elif item_str.startswith('M.2 SSD:'):
+                        item_str = item_str[8:].strip()
                     elif item_str.startswith('M.2:'):
                         item_str = item_str[4:].strip()
+                    elif item_str.startswith('NVMe SSD:'):
+                        item_str = item_str[8:].strip()
                     elif item_str.startswith('NVMe:'):
                         item_str = item_str[5:].strip()
                     elif item_str.startswith('E3.S:'):
                         item_str = item_str[5:].strip()
+                    elif item_str.startswith('SSD:'):
+                        item_str = item_str[4:].strip()
+                    # Remove bullet point if present at the start
+                    if item_str.startswith('•'):
+                        item_str = item_str[1:].strip()
+                    # Remove leading colon if present
+                    if item_str.startswith(':'):
+                        item_str = item_str[1:].strip()
                     
                     list_items.append(f"<li>{item_str}</li>")
                 
@@ -440,16 +454,31 @@ def display_storage_subcategories(row, key_prefix):
                         more_list_items = []
                         for item in value[5:]:
                             item_str = str(item).strip()
+                            # Remove prefix if present (handle both Supermicro and Lenovo formats)
                             if item_str.startswith('HDD:'):
                                 item_str = item_str[4:].strip()
-                            elif item_str.startswith('SSD:'):
-                                item_str = item_str[4:].strip()
+                            elif item_str.startswith('SAS SSD:'):
+                                item_str = item_str[8:].strip()
+                            elif item_str.startswith('SATA SSD:'):
+                                item_str = item_str[9:].strip()
+                            elif item_str.startswith('M.2 SSD:'):
+                                item_str = item_str[8:].strip()
                             elif item_str.startswith('M.2:'):
                                 item_str = item_str[4:].strip()
+                            elif item_str.startswith('NVMe SSD:'):
+                                item_str = item_str[8:].strip()
                             elif item_str.startswith('NVMe:'):
                                 item_str = item_str[5:].strip()
                             elif item_str.startswith('E3.S:'):
                                 item_str = item_str[5:].strip()
+                            elif item_str.startswith('SSD:'):
+                                item_str = item_str[4:].strip()
+                            # Remove bullet point if present at the start
+                            if item_str.startswith('•'):
+                                item_str = item_str[1:].strip()
+                            # Remove leading colon if present
+                            if item_str.startswith(':'):
+                                item_str = item_str[1:].strip()
                             
                             more_list_items.append(f"<li>{item_str}</li>")
                         
