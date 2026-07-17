@@ -636,17 +636,61 @@ def get_company_from_table(table_name: str) -> str:
         return 'Unknown'
 
 def get_server_type_from_table(table_name: str) -> str:
-    """Extract server type from table name"""
-    # Remove the company prefix
-    if 'lenovo_data_' in table_name:
-        return table_name.replace('lenovo_data_', '').replace('_', ' ').title()
-    elif 'lenovo_configurations_' in table_name:
-        return table_name.replace('lenovo_configurations_', '').replace('_', ' ').title()
-    elif 'supermicro_configurations_final_' in table_name:
+    """Extract server type from table name (for Supermicro only)"""
+    # Only use table-based classification for Supermicro
+    if 'supermicro_configurations_final_' in table_name:
         return table_name.replace('supermicro_configurations_final_', '').replace('_', ' ').title()
-    elif 'dell_configurations_' in table_name:
-        return table_name.replace('dell_configurations_', '').replace('_', ' ').title()
     return table_name
+
+def get_server_classification(company: str, product_name: str) -> str:
+    """Get server classification based on product name prefix for Lenovo and Dell"""
+    if company == 'Lenovo':
+        # Lenovo classification rules - handle both full names and model prefixes
+        # Extract the model prefix (e.g., SR, ST, SE, SD from ThinkSystem SR645 V3)
+        # Check for the model prefix after "ThinkSystem " or at the start
+        if 'ThinkSystem ' in product_name:
+            # Extract the part after "ThinkSystem "
+            model_part = product_name.split('ThinkSystem ')[1]
+            model_prefix = model_part[:2]  # Get first 2 characters (SR, ST, SE, SD)
+        elif 'ThinkEdge ' in product_name:
+            # Extract the part after "ThinkEdge "
+            model_part = product_name.split('ThinkEdge ')[1]
+            model_prefix = model_part[:2]  # Get first 2 characters (SE for Edge)
+        else:
+            # Try direct prefix matching
+            model_prefix = product_name[:2]
+        
+        if model_prefix == 'ST':
+            return 'Tower Server'
+        elif model_prefix == 'SR':
+            return 'Rack Server'
+        elif model_prefix == 'SE':
+            return 'Edge Server'
+        elif model_prefix == 'SD':
+            return 'Multi-node Server'
+        else:
+            return None  # No classification if no known prefix matched
+    
+    elif company == 'Dell':
+        # Dell classification rules
+        if product_name.startswith('PowerEdge R'):
+            return 'Rack Server'
+        elif product_name.startswith('PowerEdge T'):
+            return 'Tower Server'
+        elif product_name.startswith('PowerEdge C'):
+            return 'Cloud Server'
+        elif product_name.startswith('PowerEdge MX'):
+            return 'Blade Server'
+        elif product_name.startswith('PowerEdge XR'):
+            return 'Rugged Server'
+        elif product_name.startswith('PowerEdge XE'):
+            return 'AI Server'
+        else:
+            return None  # No classification if no known prefix matched
+    
+    else:
+        # For other companies (like Supermicro), use table-based classification
+        return None
 
 def get_dell_server_type_from_mapping(product_name: str, mapping_df: pd.DataFrame) -> str:
     """Get Dell server type from mapping data"""
@@ -777,16 +821,31 @@ def main():
         if company == 'Unknown':
             continue
         
-        # For Dell servers, use mapping data for server type
+        # Determine server type based on company
         if company == 'Dell':
+            # For Dell, try mapping first, then use classification from product name
             try:
                 df_copy['Server Type'] = df_copy['Product Name'].apply(
                     lambda x: get_dell_server_type_from_mapping(x, mapping_df)
                 )
+                # If mapping returns 'Unknown', use classification from product name
+                df_copy['Server Type'] = df_copy.apply(
+                    lambda row: get_server_classification(row['Company'], row['Product Name']) 
+                    if row['Server Type'] == 'Unknown' else row['Server Type'],
+                    axis=1
+                )
             except Exception as e:
-                # Fallback to table-based server type if mapping fails
-                df_copy['Server Type'] = get_server_type_from_table(table_name)
+                # Fallback to classification from product name
+                df_copy['Server Type'] = df_copy['Product Name'].apply(
+                    lambda x: get_server_classification(company, x)
+                )
+        elif company == 'Lenovo':
+            # For Lenovo, use classification from product name
+            df_copy['Server Type'] = df_copy['Product Name'].apply(
+                lambda x: get_server_classification(company, x)
+            )
         else:
+            # For Supermicro and others, use table-based classification
             df_copy['Server Type'] = get_server_type_from_table(table_name)
         
         df_copy['Table Source'] = table_name
@@ -917,7 +976,11 @@ def main():
             for idx, server_data in enumerate(comparison_data):
                 company = server_data['Company']
                 product = format_product_name_for_display(server_data)
-                server_type = server_data.get('Server Type', 'Unknown')
+                
+                # Use proper classification for Lenovo and Dell
+                classification = get_server_classification(company, server_data['Product Name'])
+                server_type = classification if classification else server_data.get('Server Type', 'Unknown')
+                
                 color = company_colors.get(company, '#1f77b4')
                 vendors.append({
                     'company': company,
@@ -1002,6 +1065,11 @@ def main():
                 # Get selected Dell server data
                 dell_server_data = dell_servers[dell_servers['Product Name'] == selected_dell_product].iloc[0]
                 
+                # Ensure Dell server has proper classification
+                dell_classification = get_server_classification('Dell', selected_dell_product)
+                if dell_classification:
+                    dell_server_data['Server Type'] = dell_classification
+                
                 # Get mapping information
                 mapping_info = mapping_df[mapping_df['Dell Server'] == selected_dell_product]
                 
@@ -1045,10 +1113,11 @@ def main():
                             lenovo_rows.append(lenovo_data.iloc[0])
                         else:
                             # Create placeholder row for products not in catalog
+                            lenovo_classification = get_server_classification('Lenovo', lenovo_server)
                             lenovo_rows.append({
                                 'Company': 'Lenovo',
                                 'Product Name': lenovo_server,
-                                'Server Type': 'N/A',
+                                'Server Type': lenovo_classification if lenovo_classification else 'N/A',
                                 'CPU': 'N/A',
                                 'GPU': 'N/A', 
                                 'Memory': 'N/A',
@@ -1067,8 +1136,12 @@ def main():
                             supermicro_rows.append(supermicro_data.iloc[0])
                     
                     # Build vendor list dynamically based on available competitors
+                    # Ensure Dell server has proper classification
+                    dell_classification = get_server_classification('Dell', selected_dell_product)
+                    dell_server_type = dell_classification if dell_classification else dell_server_data.get('Server Type', 'Unknown')
+                    
                     vendors = [
-                        {'company': 'Dell', 'product': selected_dell_product, 'server_type': dell_server_data.get('Server Type', 'Unknown'), 'row': dell_server_data, 'color': '#0076CE', 'found': True}
+                        {'company': 'Dell', 'product': selected_dell_product, 'server_type': dell_server_type, 'row': dell_server_data, 'color': '#0076CE', 'found': True}
                     ]
                     
                     # Add Lenovo competitors
@@ -1078,7 +1151,7 @@ def main():
                             vendors.append({
                                 'company': 'Lenovo',
                                 'product': lenovo_row['Product Name'],
-                                'server_type': 'N/A',
+                                'server_type': lenovo_row.get('Server Type', 'N/A'),
                                 'row': lenovo_row,
                                 'color': '#E2231A',
                                 'found': False
