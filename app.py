@@ -380,7 +380,7 @@ def display_server_details_compact(row, key_prefix):
         st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
 def display_storage_subcategories(row, key_prefix):
-    """Display storage subcategories within a single cell for Supermicro"""
+    """Display storage subcategories within a single cell for Supermicro and Lenovo"""
     subcategories = [
         ('HDD', 'Storage HDD'),
         ('SAS SSD', 'Storage SAS SSD'),
@@ -390,6 +390,7 @@ def display_storage_subcategories(row, key_prefix):
     ]
     
     html_content = "<div style='margin: 0; padding: 0;'>"
+    has_subcategories = False
     
     for label, col_name in subcategories:
         value = row.get(col_name, None)
@@ -402,6 +403,7 @@ def display_storage_subcategories(row, key_prefix):
                     value = [value]
             
             if value and len(value) > 0:
+                has_subcategories = True
                 html_content += f"<div style='margin-bottom: 8px;'>"
                 html_content += f"<strong style='font-size: 16px; color: #2c3e50;'>{label}:</strong><br/>"
                 
@@ -504,6 +506,11 @@ def display_storage_subcategories(row, key_prefix):
     if html_content:
         html_content += "</div>"
         st.markdown(html_content, unsafe_allow_html=True)
+    
+    # If no subcategories found, fall back to standard display
+    if not has_subcategories:
+        original_storage = row.get('Storage Drive Type', 'N/A')
+        display_list_with_show_more_compact(original_storage, f"storage_fallback_{key_prefix}")
 
 def display_comparison_matrix(vendors, key_prefix):
     """Display server specs as a row-aligned comparison matrix.
