@@ -1208,18 +1208,9 @@ def main():
                 # Get unique categories
                 categories = ['All'] + sorted(component_df['category'].unique().tolist())
                 
-                # Category filter
-                selected_category = st.selectbox("Filter by Category", categories, key="hdd_category_filter")
-                
                 # Match type filter
                 match_types = ['All', 'All 3 Vendors', 'Partial Match (2 vendors)', 'Single Vendor (1 vendor)']
-                selected_match_type = st.selectbox("Filter by Match Type", match_types, key="hdd_match_type_filter")
-                
-                # Apply category filter
-                if selected_category != 'All':
-                    filtered_components = component_df[component_df['category'] == selected_category]
-                else:
-                    filtered_components = component_df
+                selected_match_type = st.selectbox("Filter by Match Type", match_types)
                 
                 # Apply match type filter
                 def filter_by_match_type(row):
@@ -1234,7 +1225,7 @@ def main():
                         return vendors_available == 1
                     return True
                 
-                filtered_components = filtered_components[filtered_components.apply(filter_by_match_type, axis=1)]
+                filtered_components = component_df[component_df.apply(filter_by_match_type, axis=1)]
                 
                 st.info(f"Showing {len(filtered_components)} HDD component comparison(s)")
                 
@@ -1311,7 +1302,7 @@ def main():
                         category_count = len(category_df)
                         
                         # Create collapsible category section
-                        with st.expander(f"{category} ({category_count} Components)", expanded=True):
+                        with st.expander(f"{category} ({category_count} Components)", expanded=False):
                             # Group by match type within category
                             def get_match_type(row):
                                 vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
@@ -1418,18 +1409,9 @@ def main():
                 # Get unique categories
                 categories = ['All'] + sorted(component_df['category'].unique().tolist())
                 
-                # Category filter
-                selected_category = st.selectbox("Filter by Category", categories, key="ssd_category_filter")
-                
                 # Match type filter
                 match_types = ['All', 'All 3 Vendors', 'Partial Match (2 vendors)', 'Single Vendor (1 vendor)']
-                selected_match_type = st.selectbox("Filter by Match Type", match_types, key="ssd_match_type_filter")
-                
-                # Apply category filter
-                if selected_category != 'All':
-                    filtered_components = component_df[component_df['category'] == selected_category]
-                else:
-                    filtered_components = component_df
+                selected_match_type = st.selectbox("Filter by Match Type", match_types)
                 
                 # Apply match type filter
                 def filter_by_match_type(row):
@@ -1444,7 +1426,7 @@ def main():
                         return vendors_available == 1
                     return True
                 
-                filtered_components = filtered_components[filtered_components.apply(filter_by_match_type, axis=1)]
+                filtered_components = component_df[component_df.apply(filter_by_match_type, axis=1)]
                 
                 st.info(f"Showing {len(filtered_components)} SSD component comparison(s)")
                 
@@ -1521,7 +1503,7 @@ def main():
                         category_count = len(category_df)
                         
                         # Create collapsible category section
-                        with st.expander(f"{category} ({category_count} Components)", expanded=True):
+                        with st.expander(f"{category} ({category_count} Components)", expanded=False):
                             # Group by match type within category
                             def get_match_type(row):
                                 vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
