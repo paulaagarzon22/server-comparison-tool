@@ -1236,7 +1236,7 @@ def main():
                 
                 filtered_components = filtered_components[filtered_components.apply(filter_by_match_type, axis=1)]
                 
-                st.info(f"Showing {len(filtered_components)} HDD component comparison(s)", key="hdd_info_message")
+                st.info(f"Showing {len(filtered_components)} HDD component comparison(s)")
                 
                 # Display component comparisons with enhanced visual formatting
                 if len(filtered_components) > 0:
