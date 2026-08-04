@@ -1190,9 +1190,8 @@ def main():
             <strong>Legend:</strong>
             <ul>
                 <li><span style="color: #28a745;">Green border:</span> Component available from all 3 vendors (direct equivalent)</li>
-                <li><span style="color: #ffc107;">Yellow border - Partial Match:</span> Component available from 2 vendors (some competition)</li>
-                <li><span style="color: #ffc107;">Yellow border - Single Vendor:</span> Component available from only 1 vendor (no competition)</li>
-                <li><span style="color: #dc3545;">Red border:</span> Component not available from any vendor</li>
+                <li><span style="color: #ffc107;">Yellow border:</span> Component available from 2 vendors (some competition)</li>
+                <li><span style="color: #ff6b35;">Orange border:</span> Component available from only 1 vendor (no competition)</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -1212,11 +1211,30 @@ def main():
                 # Category filter
                 selected_category = st.selectbox("Filter by Category", categories)
                 
+                # Match type filter
+                match_types = ['All', 'All 3 Vendors', 'Partial Match (2 vendors)', 'Single Vendor (1 vendor)']
+                selected_match_type = st.selectbox("Filter by Match Type", match_types)
+                
                 # Apply category filter
                 if selected_category != 'All':
                     filtered_components = component_df[component_df['category'] == selected_category]
                 else:
                     filtered_components = component_df
+                
+                # Apply match type filter
+                def filter_by_match_type(row):
+                    vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
+                    if selected_match_type == 'All':
+                        return True
+                    elif selected_match_type == 'All 3 Vendors':
+                        return vendors_available == 3
+                    elif selected_match_type == 'Partial Match (2 vendors)':
+                        return vendors_available == 2
+                    elif selected_match_type == 'Single Vendor (1 vendor)':
+                        return vendors_available == 1
+                    return True
+                
+                filtered_components = filtered_components[filtered_components.apply(filter_by_match_type, axis=1)]
                 
                 st.info(f"Showing {len(filtered_components)} HDD component comparison(s)")
                 
@@ -1239,6 +1257,10 @@ def main():
                         .match-partial {
                             border-left: 5px solid #ffc107;
                             background-color: #fffbe6;
+                        }
+                        .match-single {
+                            border-left: 5px solid #ff6b35;
+                            background-color: #fff3e0;
                         }
                         .match-none {
                             border-left: 5px solid #dc3545;
@@ -1287,9 +1309,9 @@ def main():
                             match_status = "All 3 Vendors"
                         elif vendors_available == 2:
                             row_class = "match-partial"
-                            match_status = "Partial Match (2 vendors)"
+                            match_status = "Partial Match"
                         elif vendors_available == 1:
-                            row_class = "match-partial"
+                            row_class = "match-single"
                             match_status = "Single Vendor"
                         else:
                             row_class = "match-none"
@@ -1359,6 +1381,10 @@ def main():
                 # Category filter
                 selected_category = st.selectbox("Filter by Category", categories)
                 
+                # Match type filter
+                match_types = ['All', 'All 3 Vendors', 'Partial Match (2 vendors)', 'Single Vendor (1 vendor)']
+                selected_match_type = st.selectbox("Filter by Match Type", match_types)
+                
                 # Apply category filter
                 if selected_category != 'All':
                     filtered_components = component_df[component_df['category'] == selected_category]
@@ -1386,6 +1412,10 @@ def main():
                         .match-partial {
                             border-left: 5px solid #ffc107;
                             background-color: #fffbe6;
+                        }
+                        .match-single {
+                            border-left: 5px solid #ff6b35;
+                            background-color: #fff3e0;
                         }
                         .match-none {
                             border-left: 5px solid #dc3545;
@@ -1434,9 +1464,9 @@ def main():
                             match_status = "All 3 Vendors"
                         elif vendors_available == 2:
                             row_class = "match-partial"
-                            match_status = "Partial Match (2 vendors)"
+                            match_status = "Partial Match"
                         elif vendors_available == 1:
-                            row_class = "match-partial"
+                            row_class = "match-single"
                             match_status = "Single Vendor"
                         else:
                             row_class = "match-none"
