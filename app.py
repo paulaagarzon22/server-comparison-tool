@@ -1238,7 +1238,7 @@ def main():
                 
                 st.info(f"Showing {len(filtered_components)} HDD component comparison(s)")
                 
-                # Display component comparisons with enhanced visual formatting
+                # Display component comparisons with hierarchical grouping
                 if len(filtered_components) > 0:
                     # Add custom CSS for better visual presentation
                     st.markdown("""
@@ -1281,70 +1281,111 @@ def main():
                             color: #666;
                             font-style: italic;
                         }
-                        .category-badge {
-                            display: inline-block;
-                            padding: 4px 12px;
+                        .category-header {
                             background-color: #007bff;
                             color: white;
-                            border-radius: 12px;
-                            font-size: 12px;
+                            padding: 12px 20px;
+                            border-radius: 8px;
+                            margin-top: 30px;
+                            margin-bottom: 15px;
                             font-weight: bold;
+                            font-size: 18px;
+                        }
+                        .match-type-header {
+                            background-color: #6c757d;
+                            color: white;
+                            padding: 8px 15px;
+                            border-radius: 5px;
+                            margin-top: 20px;
                             margin-bottom: 10px;
+                            font-weight: bold;
+                            font-size: 14px;
                         }
                     </style>
                     """, unsafe_allow_html=True)
                     
-                    # Display each component comparison as a card
-                    for index, row in filtered_components.iterrows():
-                        category = row['category']
-                        dell = row['dell']
-                        lenovo = row['lenovo']
-                        supermicro = row['supermicro']
+                    # Group by category
+                    grouped = filtered_components.groupby('category')
+                    
+                    for category, category_df in grouped:
+                        category_count = len(category_df)
                         
-                        # Determine match type for styling
-                        vendors_available = sum(1 for v in [dell, lenovo, supermicro] if pd.notna(v) and v != 'Not Available')
-                        
-                        if vendors_available == 3:
-                            row_class = "match-all"
-                            match_status = "All 3 Vendors"
-                        elif vendors_available == 2:
-                            row_class = "match-partial"
-                            match_status = "Partial Match"
-                        elif vendors_available == 1:
-                            row_class = "match-single"
-                            match_status = "Single Vendor"
-                        else:
-                            row_class = "match-none"
-                            match_status = "No Match"
-                        
-                        # Create vendor cells
-                        dell_cell = f'<div class="vendor-cell vendor-available">Available: {dell}</div>' if pd.notna(dell) and dell != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
-                        lenovo_cell = f'<div class="vendor-cell vendor-available">Available: {lenovo}</div>' if pd.notna(lenovo) and lenovo != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
-                        supermicro_cell = f'<div class="vendor-cell vendor-available">Available: {supermicro}</div>' if pd.notna(supermicro) and supermicro != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
-                        
-                        # Display the comparison card
-                        st.markdown(f"""
-                        <div class="comparison-row {row_class}">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <span class="category-badge">{category}</span>
-                                <span style="font-weight: bold; color: #666;">{match_status}</span>
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                                <div>
-                                    <strong style="color: #0076CE;">Dell</strong>
-                                    {dell_cell}
+                        # Create collapsible category section
+                        with st.expander(f"{category} ({category_count} Components)", expanded=True):
+                            # Group by match type within category
+                            def get_match_type(row):
+                                vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
+                                if vendors_available == 3:
+                                    return 'All 3 Vendors'
+                                elif vendors_available == 2:
+                                    return 'Partial Match'
+                                elif vendors_available == 1:
+                                    return 'Single Vendor'
+                                else:
+                                    return 'No Match'
+                            
+                            category_df['match_type'] = category_df.apply(get_match_type, axis=1)
+                            match_groups = category_df.groupby('match_type')
+                            
+                            # Display each match type section
+                            for match_type, match_df in match_groups:
+                                match_count = len(match_df)
+                                
+                                st.markdown(f"""
+                                <div class="match-type-header">
+                                    {match_type} ({match_count})
                                 </div>
-                                <div>
-                                    <strong style="color: #E2231A;">Lenovo</strong>
-                                    {lenovo_cell}
-                                </div>
-                                <div>
-                                    <strong style="color: #28A745;">Supermicro</strong>
-                                    {supermicro_cell}
-                                </div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                                """, unsafe_allow_html=True)
+                                
+                                # Display each component card
+                                for index, row in match_df.iterrows():
+                                    dell = row['dell']
+                                    lenovo = row['lenovo']
+                                    supermicro = row['supermicro']
+                                    
+                                    # Determine match type for styling
+                                    vendors_available = sum(1 for v in [dell, lenovo, supermicro] if pd.notna(v))
+                                    
+                                    if vendors_available == 3:
+                                        row_class = "match-all"
+                                        match_status = "All 3 Vendors"
+                                    elif vendors_available == 2:
+                                        row_class = "match-partial"
+                                        match_status = "Partial Match"
+                                    elif vendors_available == 1:
+                                        row_class = "match-single"
+                                        match_status = "Single Vendor"
+                                    else:
+                                        row_class = "match-none"
+                                        match_status = "No Match"
+                                    
+                                    # Create vendor cells
+                                    dell_cell = f'<div class="vendor-cell vendor-available">Available: {dell}</div>' if pd.notna(dell) and dell != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                                    lenovo_cell = f'<div class="vendor-cell vendor-available">Available: {lenovo}</div>' if pd.notna(lenovo) and lenovo != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                                    supermicro_cell = f'<div class="vendor-cell vendor-available">Available: {supermicro}</div>' if pd.notna(supermicro) and supermicro != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                                    
+                                    # Display the comparison card (without category badge)
+                                    st.markdown(f"""
+                                    <div class="comparison-row {row_class}">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                            <span style="font-weight: bold; color: #666;">{match_status}</span>
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                            <div>
+                                                <strong style="color: #0076CE;">Dell</strong>
+                                                {dell_cell}
+                                            </div>
+                                            <div>
+                                                <strong style="color: #E2231A;">Lenovo</strong>
+                                                {lenovo_cell}
+                                            </div>
+                                            <div>
+                                                <strong style="color: #28A745;">Supermicro</strong>
+                                                {supermicro_cell}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
         
         except Exception as e:
             st.error(f"Error loading HDD component comparisons: {e}")
@@ -1405,9 +1446,9 @@ def main():
                 
                 filtered_components = filtered_components[filtered_components.apply(filter_by_match_type, axis=1)]
                 
-                st.info(f"Showing {len(filtered_components)} SSD component comparison(s)", key="ssd_info_message")
+                st.info(f"Showing {len(filtered_components)} SSD component comparison(s)")
                 
-                # Display component comparisons with enhanced visual formatting
+                # Display component comparisons with hierarchical grouping
                 if len(filtered_components) > 0:
                     # Add custom CSS for better visual presentation
                     st.markdown("""
@@ -1450,70 +1491,111 @@ def main():
                             color: #666;
                             font-style: italic;
                         }
-                        .category-badge {
-                            display: inline-block;
-                            padding: 4px 12px;
+                        .category-header {
                             background-color: #007bff;
                             color: white;
-                            border-radius: 12px;
-                            font-size: 12px;
+                            padding: 12px 20px;
+                            border-radius: 8px;
+                            margin-top: 30px;
+                            margin-bottom: 15px;
                             font-weight: bold;
+                            font-size: 18px;
+                        }
+                        .match-type-header {
+                            background-color: #6c757d;
+                            color: white;
+                            padding: 8px 15px;
+                            border-radius: 5px;
+                            margin-top: 20px;
                             margin-bottom: 10px;
+                            font-weight: bold;
+                            font-size: 14px;
                         }
                     </style>
                     """, unsafe_allow_html=True)
                     
-                    # Display each component comparison as a card
-                    for index, row in filtered_components.iterrows():
-                        category = row['category']
-                        dell = row['dell']
-                        lenovo = row['lenovo']
-                        supermicro = row['supermicro']
+                    # Group by category
+                    grouped = filtered_components.groupby('category')
+                    
+                    for category, category_df in grouped:
+                        category_count = len(category_df)
                         
-                        # Determine match type for styling
-                        vendors_available = sum(1 for v in [dell, lenovo, supermicro] if pd.notna(v) and v != 'Not Available')
-                        
-                        if vendors_available == 3:
-                            row_class = "match-all"
-                            match_status = "All 3 Vendors"
-                        elif vendors_available == 2:
-                            row_class = "match-partial"
-                            match_status = "Partial Match"
-                        elif vendors_available == 1:
-                            row_class = "match-single"
-                            match_status = "Single Vendor"
-                        else:
-                            row_class = "match-none"
-                            match_status = "No Match"
-                        
-                        # Create vendor cells
-                        dell_cell = f'<div class="vendor-cell vendor-available">Available: {dell}</div>' if pd.notna(dell) and dell != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
-                        lenovo_cell = f'<div class="vendor-cell vendor-available">Available: {lenovo}</div>' if pd.notna(lenovo) and lenovo != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
-                        supermicro_cell = f'<div class="vendor-cell vendor-available">Available: {supermicro}</div>' if pd.notna(supermicro) and supermicro != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
-                        
-                        # Display the comparison card
-                        st.markdown(f"""
-                        <div class="comparison-row {row_class}">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <span class="category-badge">{category}</span>
-                                <span style="font-weight: bold; color: #666;">{match_status}</span>
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                                <div>
-                                    <strong style="color: #0076CE;">Dell</strong>
-                                    {dell_cell}
+                        # Create collapsible category section
+                        with st.expander(f"{category} ({category_count} Components)", expanded=True):
+                            # Group by match type within category
+                            def get_match_type(row):
+                                vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
+                                if vendors_available == 3:
+                                    return 'All 3 Vendors'
+                                elif vendors_available == 2:
+                                    return 'Partial Match'
+                                elif vendors_available == 1:
+                                    return 'Single Vendor'
+                                else:
+                                    return 'No Match'
+                            
+                            category_df['match_type'] = category_df.apply(get_match_type, axis=1)
+                            match_groups = category_df.groupby('match_type')
+                            
+                            # Display each match type section
+                            for match_type, match_df in match_groups:
+                                match_count = len(match_df)
+                                
+                                st.markdown(f"""
+                                <div class="match-type-header">
+                                    {match_type} ({match_count})
                                 </div>
-                                <div>
-                                    <strong style="color: #E2231A;">Lenovo</strong>
-                                    {lenovo_cell}
-                                </div>
-                                <div>
-                                    <strong style="color: #28A745;">Supermicro</strong>
-                                    {supermicro_cell}
-                                </div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                                """, unsafe_allow_html=True)
+                                
+                                # Display each component card
+                                for index, row in match_df.iterrows():
+                                    dell = row['dell']
+                                    lenovo = row['lenovo']
+                                    supermicro = row['supermicro']
+                                    
+                                    # Determine match type for styling
+                                    vendors_available = sum(1 for v in [dell, lenovo, supermicro] if pd.notna(v))
+                                    
+                                    if vendors_available == 3:
+                                        row_class = "match-all"
+                                        match_status = "All 3 Vendors"
+                                    elif vendors_available == 2:
+                                        row_class = "match-partial"
+                                        match_status = "Partial Match"
+                                    elif vendors_available == 1:
+                                        row_class = "match-single"
+                                        match_status = "Single Vendor"
+                                    else:
+                                        row_class = "match-none"
+                                        match_status = "No Match"
+                                    
+                                    # Create vendor cells
+                                    dell_cell = f'<div class="vendor-cell vendor-available">Available: {dell}</div>' if pd.notna(dell) and dell != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                                    lenovo_cell = f'<div class="vendor-cell vendor-available">Available: {lenovo}</div>' if pd.notna(lenovo) and lenovo != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                                    supermicro_cell = f'<div class="vendor-cell vendor-available">Available: {supermicro}</div>' if pd.notna(supermicro) and supermicro != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                                    
+                                    # Display the comparison card (without category badge)
+                                    st.markdown(f"""
+                                    <div class="comparison-row {row_class}">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                            <span style="font-weight: bold; color: #666;">{match_status}</span>
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                            <div>
+                                                <strong style="color: #0076CE;">Dell</strong>
+                                                {dell_cell}
+                                            </div>
+                                            <div>
+                                                <strong style="color: #E2231A;">Lenovo</strong>
+                                                {lenovo_cell}
+                                            </div>
+                                            <div>
+                                                <strong style="color: #28A745;">Supermicro</strong>
+                                                {supermicro_cell}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
         
         except Exception as e:
             st.error(f"Error loading SSD component comparisons: {e}")
