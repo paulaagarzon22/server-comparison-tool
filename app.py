@@ -1209,11 +1209,11 @@ def main():
                 categories = ['All'] + sorted(component_df['category'].unique().tolist())
                 
                 # Category filter
-                selected_category = st.selectbox("Filter by Category", categories)
+                selected_category = st.selectbox("Filter by Category", categories, key="hdd_category_filter")
                 
                 # Match type filter
                 match_types = ['All', 'All 3 Vendors', 'Partial Match (2 vendors)', 'Single Vendor (1 vendor)']
-                selected_match_type = st.selectbox("Filter by Match Type", match_types)
+                selected_match_type = st.selectbox("Filter by Match Type", match_types, key="hdd_match_type_filter")
                 
                 # Apply category filter
                 if selected_category != 'All':
@@ -1236,7 +1236,7 @@ def main():
                 
                 filtered_components = filtered_components[filtered_components.apply(filter_by_match_type, axis=1)]
                 
-                st.info(f"Showing {len(filtered_components)} HDD component comparison(s)")
+                st.info(f"Showing {len(filtered_components)} HDD component comparison(s)", key="hdd_info_message")
                 
                 # Display component comparisons with enhanced visual formatting
                 if len(filtered_components) > 0:
@@ -1378,11 +1378,11 @@ def main():
                 categories = ['All'] + sorted(component_df['category'].unique().tolist())
                 
                 # Category filter
-                selected_category = st.selectbox("Filter by Category", categories)
+                selected_category = st.selectbox("Filter by Category", categories, key="ssd_category_filter")
                 
                 # Match type filter
                 match_types = ['All', 'All 3 Vendors', 'Partial Match (2 vendors)', 'Single Vendor (1 vendor)']
-                selected_match_type = st.selectbox("Filter by Match Type", match_types)
+                selected_match_type = st.selectbox("Filter by Match Type", match_types, key="ssd_match_type_filter")
                 
                 # Apply category filter
                 if selected_category != 'All':
@@ -1405,7 +1405,7 @@ def main():
                 
                 filtered_components = filtered_components[filtered_components.apply(filter_by_match_type, axis=1)]
                 
-                st.info(f"Showing {len(filtered_components)} SSD component comparison(s)")
+                st.info(f"Showing {len(filtered_components)} SSD component comparison(s)", key="ssd_info_message")
                 
                 # Display component comparisons with enhanced visual formatting
                 if len(filtered_components) > 0:
