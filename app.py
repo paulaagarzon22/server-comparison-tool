@@ -879,7 +879,7 @@ def main():
         filtered_df = filtered_df[filtered_df['Server Type'] == selected_server_type]
     
     # Main content area with tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["Catalog", "Dell Mapped Comparisons", "User Selected Comparisons", "Component Comparisons"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Catalog", "Dell Mapped Comparisons", "User Selected Comparisons", "HDD Comparisons", "SSD Comparisons"])
     
     # Tab 1: Catalog View
     with tab1:
@@ -1180,9 +1180,9 @@ def main():
                     matrix_key = re.sub(r'[^a-zA-Z0-9_]', '_', f"mapped_{selected_dell_product}")
                     display_comparison_matrix(vendors, matrix_key)
     
-    # Tab 4: Component Comparisons
+    # Tab 4: HDD Comparisons
     with tab4:
-        st.markdown('<h2 class="sub-header">HDD/SSD Component Comparisons</h2>', unsafe_allow_html=True)
+        st.markdown('<h2 class="sub-header">HDD Component Comparisons</h2>', unsafe_allow_html=True)
         
         # Load component comparisons data
         try:
@@ -1191,7 +1191,7 @@ def main():
             conn.close()
             
             if len(component_df) == 0:
-                st.warning("No component comparison data available.")
+                st.warning("No HDD component comparison data available.")
             else:
                 # Get unique categories
                 categories = ['All'] + sorted(component_df['category'].unique().tolist())
@@ -1205,35 +1205,142 @@ def main():
                 else:
                     filtered_components = component_df
                 
-                st.info(f"Showing {len(filtered_components)} component comparison(s)")
+                st.info(f"Showing {len(filtered_components)} HDD component comparison(s)")
                 
-                # Display component comparisons as a clean table
+                # Display component comparisons with enhanced visual formatting
                 if len(filtered_components) > 0:
-                    # Create a styled dataframe for display
-                    display_df = filtered_components[['category', 'dell', 'lenovo', 'supermicro']].copy()
-                    display_df.columns = ['Category', 'Dell', 'Lenovo', 'Supermicro']
+                    # Add custom CSS for better visual presentation
+                    st.markdown("""
+                    <style>
+                        .comparison-row {
+                            border: 1px solid #e0e0e0;
+                            border-radius: 8px;
+                            padding: 15px;
+                            margin-bottom: 15px;
+                            background-color: #fafafa;
+                        }
+                        .match-all {
+                            border-left: 5px solid #28a745;
+                            background-color: #f0fff4;
+                        }
+                        .match-partial {
+                            border-left: 5px solid #ffc107;
+                            background-color: #fffbe6;
+                        }
+                        .match-none {
+                            border-left: 5px solid #dc3545;
+                            background-color: #fff5f5;
+                        }
+                        .vendor-cell {
+                            padding: 10px;
+                            margin: 5px 0;
+                            border-radius: 4px;
+                        }
+                        .vendor-available {
+                            background-color: #e8f5e9;
+                            border: 1px solid #c8e6c9;
+                        }
+                        .vendor-unavailable {
+                            background-color: #ffebee;
+                            border: 1px solid #ffcdd2;
+                            color: #666;
+                            font-style: italic;
+                        }
+                        .category-badge {
+                            display: inline-block;
+                            padding: 4px 12px;
+                            background-color: #007bff;
+                            color: white;
+                            border-radius: 12px;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin-bottom: 10px;
+                        }
+                    </style>
+                    """, unsafe_allow_html=True)
                     
-                    # Replace NaN with "Not Available"
-                    display_df = display_df.fillna('Not Available')
+                    # Display each component comparison as a card
+                    for index, row in filtered_components.iterrows():
+                        category = row['category']
+                        dell = row['dell']
+                        lenovo = row['lenovo']
+                        supermicro = row['supermicro']
+                        
+                        # Determine match type for styling
+                        vendors_available = sum(1 for v in [dell, lenovo, supermicro] if pd.notna(v) and v != 'Not Available')
+                        
+                        if vendors_available == 3:
+                            row_class = "match-all"
+                            match_status = "✅ All 3 Vendors"
+                        elif vendors_available == 2:
+                            row_class = "match-partial"
+                            match_status = "⚠️ Partial Match"
+                        elif vendors_available == 1:
+                            row_class = "match-partial"
+                            match_status = "⚠️ Single Vendor"
+                        else:
+                            row_class = "match-none"
+                            match_status = "❌ No Match"
+                        
+                        # Create vendor cells
+                        dell_cell = f'<div class="vendor-cell vendor-available">✅ {dell}</div>' if pd.notna(dell) and dell != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">❌ Not Available</div>'
+                        lenovo_cell = f'<div class="vendor-cell vendor-available">✅ {lenovo}</div>' if pd.notna(lenovo) and lenovo != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">❌ Not Available</div>'
+                        supermicro_cell = f'<div class="vendor-cell vendor-available">✅ {supermicro}</div>' if pd.notna(supermicro) and supermicro != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">❌ Not Available</div>'
+                        
+                        # Display the comparison card
+                        st.markdown(f"""
+                        <div class="comparison-row {row_class}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <span class="category-badge">{category}</span>
+                                <span style="font-weight: bold; color: #666;">{match_status}</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <strong style="color: #0076CE;">Dell</strong>
+                                    {dell_cell}
+                                </div>
+                                <div>
+                                    <strong style="color: #E2231A;">Lenovo</strong>
+                                    {lenovo_cell}
+                                </div>
+                                <div>
+                                    <strong style="color: #28A745;">Supermicro</strong>
+                                    {supermicro_cell}
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
                     
-                    # Display the table
-                    st.dataframe(display_df, use_container_width=True, hide_index=True)
-                    
-                    # Add styling explanation
+                    # Add legend
                     st.markdown("""
                     <div style='margin-top: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;'>
-                        <strong>How to read this table:</strong>
+                        <strong>Legend:</strong>
                         <ul>
-                            <li>Components in the same row are equivalent across vendors</li>
-                            <li>Organized from least capacity to highest capacity</li>
-                            <li>"Not Available" means the vendor doesn't offer an equivalent component</li>
-                            <li>Filter by category to focus on specific drive types</li>
+                            <li><span style="color: #28a745;">✅ Green border:</span> Component available from all 3 vendors (direct equivalent)</li>
+                            <li><span style="color: #ffc107;">⚠️ Yellow border:</span> Component available from 1-2 vendors (partial/no equivalent)</li>
+                            <li><span style="color: #dc3545;">❌ Red border:</span> Component not available from any vendor</li>
                         </ul>
                     </div>
                     """, unsafe_allow_html=True)
         
         except Exception as e:
-            st.error(f"Error loading component comparisons: {e}")
+            st.error(f"Error loading HDD component comparisons: {e}")
+    
+    # Tab 5: SSD Comparisons
+    with tab5:
+        st.markdown('<h2 class="sub-header">SSD Component Comparisons</h2>', unsafe_allow_html=True)
+        
+        st.info("SSD component comparisons coming soon. This tab will display SSD/NVMe component comparisons across Dell, Lenovo, and Supermicro vendors.")
+        
+        # Add placeholder for future SSD data
+        st.markdown("""
+        <div style='text-align: center; padding: 40px; background-color: #f8f9fa; border-radius: 8px; border: 2px dashed #dee2e6;'>
+            <div style='font-size: 48px; margin-bottom: 20px;'>💾</div>
+            <h3>SSD Component Data</h3>
+            <p>SSD and NVMe component comparisons will be added here.</p>
+            <p style='color: #666; font-size: 14px;'>This will include similar functionality to the HDD comparisons tab with category filtering and visual equivalence indicators.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
