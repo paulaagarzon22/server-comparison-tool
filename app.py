@@ -1184,6 +1184,19 @@ def main():
     with tab4:
         st.markdown('<h2 class="sub-header">HDD Component Comparisons</h2>', unsafe_allow_html=True)
         
+        # Add legend at the top
+        st.markdown("""
+        <div style='margin-bottom: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;'>
+            <strong>Legend:</strong>
+            <ul>
+                <li><span style="color: #28a745;">Green border:</span> Component available from all 3 vendors (direct equivalent)</li>
+                <li><span style="color: #ffc107;">Yellow border - Partial Match:</span> Component available from 2 vendors (some competition)</li>
+                <li><span style="color: #ffc107;">Yellow border - Single Vendor:</span> Component available from only 1 vendor (no competition)</li>
+                <li><span style="color: #dc3545;">Red border:</span> Component not available from any vendor</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
         # Load component comparisons data
         try:
             conn = sqlite3.connect(DB_FILE)
@@ -1271,21 +1284,21 @@ def main():
                         
                         if vendors_available == 3:
                             row_class = "match-all"
-                            match_status = "✅ All 3 Vendors"
+                            match_status = "All 3 Vendors"
                         elif vendors_available == 2:
                             row_class = "match-partial"
-                            match_status = "⚠️ Partial Match"
+                            match_status = "Partial Match (2 vendors)"
                         elif vendors_available == 1:
                             row_class = "match-partial"
-                            match_status = "⚠️ Single Vendor"
+                            match_status = "Single Vendor (1 vendor)"
                         else:
                             row_class = "match-none"
-                            match_status = "❌ No Match"
+                            match_status = "No Match"
                         
                         # Create vendor cells
-                        dell_cell = f'<div class="vendor-cell vendor-available">✅ {dell}</div>' if pd.notna(dell) and dell != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">❌ Not Available</div>'
-                        lenovo_cell = f'<div class="vendor-cell vendor-available">✅ {lenovo}</div>' if pd.notna(lenovo) and lenovo != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">❌ Not Available</div>'
-                        supermicro_cell = f'<div class="vendor-cell vendor-available">✅ {supermicro}</div>' if pd.notna(supermicro) and supermicro != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">❌ Not Available</div>'
+                        dell_cell = f'<div class="vendor-cell vendor-available">Available: {dell}</div>' if pd.notna(dell) and dell != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                        lenovo_cell = f'<div class="vendor-cell vendor-available">Available: {lenovo}</div>' if pd.notna(lenovo) and lenovo != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                        supermicro_cell = f'<div class="vendor-cell vendor-available">Available: {supermicro}</div>' if pd.notna(supermicro) and supermicro != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
                         
                         # Display the comparison card
                         st.markdown(f"""
@@ -1310,18 +1323,6 @@ def main():
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
-                    
-                    # Add legend
-                    st.markdown("""
-                    <div style='margin-top: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;'>
-                        <strong>Legend:</strong>
-                        <ul>
-                            <li><span style="color: #28a745;">✅ Green border:</span> Component available from all 3 vendors (direct equivalent)</li>
-                            <li><span style="color: #ffc107;">⚠️ Yellow border:</span> Component available from 1-2 vendors (partial/no equivalent)</li>
-                            <li><span style="color: #dc3545;">❌ Red border:</span> Component not available from any vendor</li>
-                        </ul>
-                    </div>
-                    """, unsafe_allow_html=True)
         
         except Exception as e:
             st.error(f"Error loading HDD component comparisons: {e}")
@@ -1329,6 +1330,19 @@ def main():
     # Tab 5: SSD Comparisons
     with tab5:
         st.markdown('<h2 class="sub-header">SSD Component Comparisons</h2>', unsafe_allow_html=True)
+        
+        # Add legend at the top
+        st.markdown("""
+        <div style='margin-bottom: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;'>
+            <strong>Legend:</strong>
+            <ul>
+                <li><span style="color: #28a745;">Green border:</span> Component available from all 3 vendors (direct equivalent)</li>
+                <li><span style="color: #ffc107;">Yellow border - Partial Match:</span> Component available from 2 vendors (some competition)</li>
+                <li><span style="color: #ffc107;">Yellow border - Single Vendor:</span> Component available from only 1 vendor (no competition)</li>
+                <li><span style="color: #dc3545;">Red border:</span> Component not available from any vendor</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
         
         st.info("SSD component comparisons coming soon. This tab will display SSD/NVMe component comparisons across Dell, Lenovo, and Supermicro vendors.")
         
