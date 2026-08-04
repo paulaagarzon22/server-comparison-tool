@@ -1290,7 +1290,7 @@ def main():
                             match_status = "Partial Match (2 vendors)"
                         elif vendors_available == 1:
                             row_class = "match-partial"
-                            match_status = "Single Vendor (1 vendor)"
+                            match_status = "Single Vendor"
                         else:
                             row_class = "match-none"
                             match_status = "No Match"
@@ -1437,7 +1437,7 @@ def main():
                             match_status = "Partial Match (2 vendors)"
                         elif vendors_available == 1:
                             row_class = "match-partial"
-                            match_status = "Single Vendor (1 vendor)"
+                            match_status = "Single Vendor"
                         else:
                             row_class = "match-none"
                             match_status = "No Match"
