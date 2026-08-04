@@ -1197,10 +1197,10 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Load component comparisons data
+        # Load HDD component comparisons data
         try:
             conn = sqlite3.connect(DB_FILE)
-            component_df = pd.read_sql("SELECT * FROM component_comparisons_hdds_ssds ORDER BY id", conn)
+            component_df = pd.read_sql("SELECT * FROM component_comparisons_hdd ORDER BY id", conn)
             conn.close()
             
             if len(component_df) == 0:
@@ -1344,17 +1344,135 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        st.info("SSD component comparisons coming soon. This tab will display SSD/NVMe component comparisons across Dell, Lenovo, and Supermicro vendors.")
+        # Load SSD component comparisons data
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            component_df = pd.read_sql("SELECT * FROM component_comparisons_ssd ORDER BY id", conn)
+            conn.close()
+            
+            if len(component_df) == 0:
+                st.warning("No SSD component comparison data available.")
+            else:
+                # Get unique categories
+                categories = ['All'] + sorted(component_df['category'].unique().tolist())
+                
+                # Category filter
+                selected_category = st.selectbox("Filter by Category", categories)
+                
+                # Apply category filter
+                if selected_category != 'All':
+                    filtered_components = component_df[component_df['category'] == selected_category]
+                else:
+                    filtered_components = component_df
+                
+                st.info(f"Showing {len(filtered_components)} SSD component comparison(s)")
+                
+                # Display component comparisons with enhanced visual formatting
+                if len(filtered_components) > 0:
+                    # Add custom CSS for better visual presentation
+                    st.markdown("""
+                    <style>
+                        .comparison-row {
+                            border: 1px solid #e0e0e0;
+                            border-radius: 8px;
+                            padding: 15px;
+                            margin-bottom: 15px;
+                            background-color: #fafafa;
+                        }
+                        .match-all {
+                            border-left: 5px solid #28a745;
+                            background-color: #f0fff4;
+                        }
+                        .match-partial {
+                            border-left: 5px solid #ffc107;
+                            background-color: #fffbe6;
+                        }
+                        .match-none {
+                            border-left: 5px solid #dc3545;
+                            background-color: #fff5f5;
+                        }
+                        .vendor-cell {
+                            padding: 10px;
+                            margin: 5px 0;
+                            border-radius: 4px;
+                        }
+                        .vendor-available {
+                            background-color: #e8f5e9;
+                            border: 1px solid #c8e6c9;
+                        }
+                        .vendor-unavailable {
+                            background-color: #ffebee;
+                            border: 1px solid #ffcdd2;
+                            color: #666;
+                            font-style: italic;
+                        }
+                        .category-badge {
+                            display: inline-block;
+                            padding: 4px 12px;
+                            background-color: #007bff;
+                            color: white;
+                            border-radius: 12px;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin-bottom: 10px;
+                        }
+                    </style>
+                    """, unsafe_allow_html=True)
+                    
+                    # Display each component comparison as a card
+                    for index, row in filtered_components.iterrows():
+                        category = row['category']
+                        dell = row['dell']
+                        lenovo = row['lenovo']
+                        supermicro = row['supermicro']
+                        
+                        # Determine match type for styling
+                        vendors_available = sum(1 for v in [dell, lenovo, supermicro] if pd.notna(v) and v != 'Not Available')
+                        
+                        if vendors_available == 3:
+                            row_class = "match-all"
+                            match_status = "All 3 Vendors"
+                        elif vendors_available == 2:
+                            row_class = "match-partial"
+                            match_status = "Partial Match (2 vendors)"
+                        elif vendors_available == 1:
+                            row_class = "match-partial"
+                            match_status = "Single Vendor (1 vendor)"
+                        else:
+                            row_class = "match-none"
+                            match_status = "No Match"
+                        
+                        # Create vendor cells
+                        dell_cell = f'<div class="vendor-cell vendor-available">Available: {dell}</div>' if pd.notna(dell) and dell != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                        lenovo_cell = f'<div class="vendor-cell vendor-available">Available: {lenovo}</div>' if pd.notna(lenovo) and lenovo != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                        supermicro_cell = f'<div class="vendor-cell vendor-available">Available: {supermicro}</div>' if pd.notna(supermicro) and supermicro != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                        
+                        # Display the comparison card
+                        st.markdown(f"""
+                        <div class="comparison-row {row_class}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <span class="category-badge">{category}</span>
+                                <span style="font-weight: bold; color: #666;">{match_status}</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <strong style="color: #0076CE;">Dell</strong>
+                                    {dell_cell}
+                                </div>
+                                <div>
+                                    <strong style="color: #E2231A;">Lenovo</strong>
+                                    {lenovo_cell}
+                                </div>
+                                <div>
+                                    <strong style="color: #28A745;">Supermicro</strong>
+                                    {supermicro_cell}
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
         
-        # Add placeholder for future SSD data
-        st.markdown("""
-        <div style='text-align: center; padding: 40px; background-color: #f8f9fa; border-radius: 8px; border: 2px dashed #dee2e6;'>
-            <div style='font-size: 48px; margin-bottom: 20px;'>💾</div>
-            <h3>SSD Component Data</h3>
-            <p>SSD and NVMe component comparisons will be added here.</p>
-            <p style='color: #666; font-size: 14px;'>This will include similar functionality to the HDD comparisons tab with category filtering and visual equivalence indicators.</p>
-        </div>
-        """, unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Error loading SSD component comparisons: {e}")
 
 if __name__ == "__main__":
     main()
