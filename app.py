@@ -1210,7 +1210,7 @@ def main():
                 
                 # Match type filter
                 match_types = ['All', 'All 3 Vendors', 'Partial Match (2 vendors)', 'Single Vendor (1 vendor)']
-                selected_match_type = st.selectbox("Filter by Match Type", match_types)
+                selected_match_type = st.selectbox("Filter by Match Type", match_types, key="hdd_match_type")
                 
                 # Apply match type filter
                 def filter_by_match_type(row):
@@ -1411,7 +1411,7 @@ def main():
                 
                 # Match type filter
                 match_types = ['All', 'All 3 Vendors', 'Partial Match (2 vendors)', 'Single Vendor (1 vendor)']
-                selected_match_type = st.selectbox("Filter by Match Type", match_types)
+                selected_match_type = st.selectbox("Filter by Match Type", match_types, key="ssd_match_type")
                 
                 # Apply match type filter
                 def filter_by_match_type(row):
