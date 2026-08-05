@@ -1295,6 +1295,18 @@ def main():
                     </style>
                     """, unsafe_allow_html=True)
                     
+                    # Define match type function outside the loop
+                    def get_match_type(row):
+                        vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
+                        if vendors_available == 3:
+                            return 'All 3 Vendors'
+                        elif vendors_available == 2:
+                            return 'Partial Match'
+                        elif vendors_available == 1:
+                            return 'Single Vendor'
+                        else:
+                            return 'No Match'
+                    
                     # Group by category
                     grouped = filtered_components.groupby('category')
                     
@@ -1303,20 +1315,9 @@ def main():
                         
                         # Create collapsible category section
                         with st.expander(f"{category} ({category_count} Components)", expanded=False):
-                            # Group by match type within category
-                            def get_match_type(row):
-                                vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
-                                if vendors_available == 3:
-                                    return 'All 3 Vendors'
-                                elif vendors_available == 2:
-                                    return 'Partial Match'
-                                elif vendors_available == 1:
-                                    return 'Single Vendor'
-                                else:
-                                    return 'No Match'
-                            
-                            category_df['match_type'] = category_df.apply(get_match_type, axis=1)
-                            match_groups = category_df.groupby('match_type')
+                            category_df_copy = category_df.copy()
+                            category_df_copy['match_type'] = category_df_copy.apply(get_match_type, axis=1)
+                            match_groups = category_df_copy.groupby('match_type')
                             
                             # Display each match type section
                             for match_type, match_df in match_groups:
@@ -1496,6 +1497,18 @@ def main():
                     </style>
                     """, unsafe_allow_html=True)
                     
+                    # Define match type function outside the loop
+                    def get_match_type(row):
+                        vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
+                        if vendors_available == 3:
+                            return 'All 3 Vendors'
+                        elif vendors_available == 2:
+                            return 'Partial Match'
+                        elif vendors_available == 1:
+                            return 'Single Vendor'
+                        else:
+                            return 'No Match'
+                    
                     # Group by category
                     grouped = filtered_components.groupby('category')
                     
@@ -1504,20 +1517,9 @@ def main():
                         
                         # Create collapsible category section
                         with st.expander(f"{category} ({category_count} Components)", expanded=False):
-                            # Group by match type within category
-                            def get_match_type(row):
-                                vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
-                                if vendors_available == 3:
-                                    return 'All 3 Vendors'
-                                elif vendors_available == 2:
-                                    return 'Partial Match'
-                                elif vendors_available == 1:
-                                    return 'Single Vendor'
-                                else:
-                                    return 'No Match'
-                            
-                            category_df['match_type'] = category_df.apply(get_match_type, axis=1)
-                            match_groups = category_df.groupby('match_type')
+                            category_df_copy = category_df.copy()
+                            category_df_copy['match_type'] = category_df_copy.apply(get_match_type, axis=1)
+                            match_groups = category_df_copy.groupby('match_type')
                             
                             # Display each match type section
                             for match_type, match_df in match_groups:
