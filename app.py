@@ -1712,7 +1712,7 @@ def main():
                     category_count = len(filtered_components)
                     
                     # Create collapsible section
-                    with st.expander(f"Memory Components ({category_count})", expanded=True):
+                    with st.expander(f"Memory Components ({category_count})", expanded=False):
                         # Group by match type
                         filtered_components_copy = filtered_components.copy()
                         filtered_components_copy['match_type'] = filtered_components_copy.apply(get_match_type, axis=1)
