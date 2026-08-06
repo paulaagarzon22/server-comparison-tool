@@ -879,7 +879,7 @@ def main():
         filtered_df = filtered_df[filtered_df['Server Type'] == selected_server_type]
     
     # Main content area with tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Catalog", "Dell Mapped Comparisons", "User Selected Comparisons", "HDD Comparisons", "SSD Comparisons"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Catalog", "Dell Mapped Comparisons", "User Selected Comparisons", "HDD Comparisons", "SSD Comparisons", "Memory Comparisons"])
     
     # Tab 1: Catalog View
     with tab1:
@@ -1583,6 +1583,203 @@ def main():
         
         except Exception as e:
             st.error(f"Error loading SSD component comparisons: {e}")
+    
+    # Tab 6: Memory Comparisons
+    with tab6:
+        st.markdown('<h2 class="sub-header">Memory Component Comparisons</h2>', unsafe_allow_html=True)
+        
+        # Add legend at the top
+        st.markdown("""
+        <div style='margin-bottom: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;'>
+            <strong>Legend:</strong>
+            <ul>
+                <li><span style="color: #28a745;">Green border:</span> Component available from all 3 vendors (direct equivalent)</li>
+                <li><span style="color: #ffc107;">Yellow border:</span> Component available from 2 vendors (some competition)</li>
+                <li><span style="color: #ff6b35;">Orange border:</span> Component available from only 1 vendor (no competition)</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Load Memory component comparisons data
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            component_df = pd.read_sql("SELECT * FROM component_comparisons_memory ORDER BY id", conn)
+            conn.close()
+            
+            if len(component_df) == 0:
+                st.warning("No Memory component comparison data available.")
+            else:
+                # Match type filter
+                match_types = ['All', 'All 3 Vendors', 'Partial Match (2 vendors)', 'Single Vendor (1 vendor)']
+                selected_match_type = st.selectbox("Filter by Match Type", match_types, key="memory_match_type")
+                
+                # Apply match type filter
+                def filter_by_match_type(row):
+                    vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
+                    if selected_match_type == 'All':
+                        return True
+                    elif selected_match_type == 'All 3 Vendors':
+                        return vendors_available == 3
+                    elif selected_match_type == 'Partial Match (2 vendors)':
+                        return vendors_available == 2
+                    elif selected_match_type == 'Single Vendor (1 vendor)':
+                        return vendors_available == 1
+                    return True
+                
+                filtered_components = component_df[component_df.apply(filter_by_match_type, axis=1)]
+                
+                st.info(f"Showing {len(filtered_components)} Memory component comparison(s)")
+                
+                # Display component comparisons with hierarchical grouping
+                if len(filtered_components) > 0:
+                    # Add custom CSS for better visual presentation
+                    st.markdown("""
+                    <style>
+                        .comparison-row {
+                            border: 1px solid #e0e0e0;
+                            border-radius: 8px;
+                            padding: 15px;
+                            margin-bottom: 15px;
+                            background-color: #fafafa;
+                        }
+                        .match-all {
+                            border-left: 5px solid #28a745;
+                            background-color: #f0fff4;
+                        }
+                        .match-partial {
+                            border-left: 5px solid #ffc107;
+                            background-color: #fffbe6;
+                        }
+                        .match-single {
+                            border-left: 5px solid #ff6b35;
+                            background-color: #fff3e0;
+                        }
+                        .match-none {
+                            border-left: 5px solid #dc3545;
+                            background-color: #fff5f5;
+                        }
+                        .vendor-cell {
+                            padding: 10px;
+                            margin: 5px 0;
+                            border-radius: 4px;
+                        }
+                        .vendor-available {
+                            background-color: #e8f5e9;
+                            border: 1px solid #c8e6c9;
+                        }
+                        .vendor-unavailable {
+                            background-color: #ffebee;
+                            border: 1px solid #ffcdd2;
+                            color: #666;
+                            font-style: italic;
+                        }
+                        .category-header {
+                            background-color: #007bff;
+                            color: white;
+                            padding: 12px 20px;
+                            border-radius: 8px;
+                            margin-top: 30px;
+                            margin-bottom: 15px;
+                            font-weight: bold;
+                            font-size: 18px;
+                        }
+                        .match-type-header {
+                            background-color: #6c757d;
+                            color: white;
+                            padding: 8px 15px;
+                            border-radius: 5px;
+                            margin-top: 20px;
+                            margin-bottom: 10px;
+                            font-weight: bold;
+                            font-size: 14px;
+                        }
+                    </style>
+                    """, unsafe_allow_html=True)
+                    
+                    # Define match type function outside the loop
+                    def get_match_type(row):
+                        vendors_available = sum(1 for v in [row['dell'], row['lenovo'], row['supermicro']] if pd.notna(v))
+                        if vendors_available == 3:
+                            return 'All 3 Vendors'
+                        elif vendors_available == 2:
+                            return 'Partial Match'
+                        elif vendors_available == 1:
+                            return 'Single Vendor'
+                        else:
+                            return 'No Match'
+                    
+                    # Create a single category section for memory (since memory doesn't have categories like HDD/SSD)
+                    category_count = len(filtered_components)
+                    
+                    # Create collapsible section
+                    with st.expander(f"Memory Components ({category_count})", expanded=True):
+                        # Group by match type
+                        filtered_components_copy = filtered_components.copy()
+                        filtered_components_copy['match_type'] = filtered_components_copy.apply(get_match_type, axis=1)
+                        match_groups = filtered_components_copy.groupby('match_type')
+                        
+                        # Display each match type section
+                        for match_type, match_df in match_groups:
+                            match_count = len(match_df)
+                            
+                            st.markdown(f"""
+                            <div class="match-type-header">
+                                {match_type} ({match_count})
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Display each component card
+                            for index, row in match_df.iterrows():
+                                dell = row['dell']
+                                lenovo = row['lenovo']
+                                supermicro = row['supermicro']
+                                
+                                # Determine match type for styling
+                                vendors_available = sum(1 for v in [dell, lenovo, supermicro] if pd.notna(v))
+                                
+                                if vendors_available == 3:
+                                    row_class = "match-all"
+                                    match_status = "All 3 Vendors"
+                                elif vendors_available == 2:
+                                    row_class = "match-partial"
+                                    match_status = "Partial Match"
+                                elif vendors_available == 1:
+                                    row_class = "match-single"
+                                    match_status = "Single Vendor"
+                                else:
+                                    row_class = "match-none"
+                                    match_status = "No Match"
+                                
+                                # Create vendor cells
+                                dell_cell = f'<div class="vendor-cell vendor-available">Available: {dell}</div>' if pd.notna(dell) and dell != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                                lenovo_cell = f'<div class="vendor-cell vendor-available">Available: {lenovo}</div>' if pd.notna(lenovo) and lenovo != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                                supermicro_cell = f'<div class="vendor-cell vendor-available">Available: {supermicro}</div>' if pd.notna(supermicro) and supermicro != 'Not Available' else f'<div class="vendor-cell vendor-unavailable">Not Available</div>'
+                                
+                                # Display the comparison card
+                                st.markdown(f"""
+                                <div class="comparison-row {row_class}">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <span style="font-weight: bold; color: #666;">{match_status}</span>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                        <div>
+                                            <strong style="color: #0076CE;">Dell</strong>
+                                            {dell_cell}
+                                        </div>
+                                        <div>
+                                            <strong style="color: #E2231A;">Lenovo</strong>
+                                            {lenovo_cell}
+                                        </div>
+                                        <div>
+                                            <strong style="color: #28A745;">Supermicro</strong>
+                                            {supermicro_cell}
+                                        </div>
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+        
+        except Exception as e:
+            st.error(f"Error loading Memory component comparisons: {e}")
 
 if __name__ == "__main__":
     main()
